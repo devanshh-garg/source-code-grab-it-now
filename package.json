@@ -16,6 +16,7 @@
     "date-fns": "^3.3.1",
     "framer-motion": "^11.0.8",
     "html5-qrcode": "^2.3.8",
+    "lovable-tagger": "^1.1.8",
     "lucide-react": "^0.344.0",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",
