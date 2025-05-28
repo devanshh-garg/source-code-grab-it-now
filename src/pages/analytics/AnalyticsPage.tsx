@@ -1,8 +1,4 @@
 import React, { useState } from 'react';
-import {
-  LineChart, Line, AreaChart, Area, BarChart as RechartsBarChart,
-  Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
 import { 
   BarChart3, TrendingUp, Users, CreditCard, 
   Calendar, ChevronDown, Download, Filter,

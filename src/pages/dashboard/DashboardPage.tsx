@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  CreditCard, Users, BarChart3, TrendingUp, 
+  CreditCard, Users, BarChart3, 
   ArrowUpRight, Plus, QrCode
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';

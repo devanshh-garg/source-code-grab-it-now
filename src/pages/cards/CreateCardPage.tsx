@@ -4,8 +4,7 @@ import {
   CreditCard, Palette, Coffee, Award, 
   Gift, ShoppingBag, Utensils, BarChart, 
   Check, ChevronRight, Image, Smartphone,
-  MapPin, Link, Instagram, Twitter, Facebook,
-  Plus, Minus
+  MapPin, Link, Instagram, Twitter, Facebook
 } from 'lucide-react';
 
 // Card type options

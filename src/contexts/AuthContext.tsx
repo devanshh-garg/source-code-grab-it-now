@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
 interface User {
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string) => {
     setLoading(true);
     try {
       // Mock login - in a real app, this would be an API call
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (email: string, password: string, name: string, businessName: string) => {
+  const signup = async (email: string, _password: string, name: string, businessName: string) => {
     setLoading(true);
     try {
       // Mock signup - in a real app, this would be an API call
