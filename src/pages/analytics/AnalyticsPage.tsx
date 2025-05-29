@@ -1,13 +1,9 @@
 
 import React, { useState } from 'react';
-import {
-  LineChart, Line, AreaChart, Area, BarChart as RechartsBarChart,
-  Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
 import { 
   BarChart3, TrendingUp, Users, CreditCard, 
   Calendar, ChevronDown, Download, Filter,
-  Eye, Clock, Star, Target
+  Share2, Clock
 } from 'lucide-react';
 
 const AnalyticsPage: React.FC = () => {
@@ -155,7 +151,7 @@ const AnalyticsPage: React.FC = () => {
               <div className="absolute inset-0 rounded-full border-8 border-amber-500" style={{ clipPath: 'polygon(50% 50%, 50% 100%, 0 100%, 0 50%)' }}></div>
               <div className="absolute inset-0 rounded-full border-8 border-emerald-500" style={{ clipPath: 'polygon(50% 50%, 0 50%, 0 0, 50% 0)' }}></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <PieChart size={24} className="text-gray-400" />
+                <Clock size={24} className="text-gray-400" />
               </div>
             </div>
             
