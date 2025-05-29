@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -6,11 +5,9 @@ import {
   MoreVertical, Edit, Trash2, Copy, QrCode, Share2, Eye
 } from 'lucide-react';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
-import { useBusinessData } from '../../hooks/useBusinessData';
 
 const CardsPage: React.FC = () => {
   const { cards, loading, deleteCard } = useLoyaltyCards();
-  const { business } = useBusinessData();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCardMenu, setActiveCardMenu] = useState<string | null>(null);
 

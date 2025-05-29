@@ -34,11 +34,16 @@ export const useLoyaltyCards = () => {
   }, [business?.id]);
 
   const fetchCards = async () => {
+    if (!business?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('loyalty_cards')
         .select('*')
-        .eq('business_id', business?.id)
+        .eq('business_id', business.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -46,7 +51,18 @@ export const useLoyaltyCards = () => {
         return;
       }
 
-      setCards(data || []);
+      // Transform the data to match our interface
+      const transformedCards: LoyaltyCard[] = (data || []).map(card => ({
+        id: card.id,
+        name: card.name,
+        type: card.type as 'stamp' | 'points' | 'tier',
+        design: card.design as { backgroundColor?: string; logoUrl?: string },
+        rules: card.rules as { rewardTitle?: string; totalNeeded?: number },
+        active: card.active,
+        created_at: card.created_at,
+      }));
+
+      setCards(transformedCards);
     } catch (error) {
       console.error('Error fetching cards:', error);
     } finally {

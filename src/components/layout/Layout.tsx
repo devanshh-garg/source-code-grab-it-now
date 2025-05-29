@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -5,6 +6,7 @@ import {
   Menu, X, LogOut, Settings, User
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBusinessData } from '../../hooks/useBusinessData';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
+  const { business } = useBusinessData();
 
   const handleLogout = () => {
     logout();
@@ -23,6 +26,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const getUserDisplayName = () => {
+    return currentUser?.user_metadata?.full_name || 
+           currentUser?.user_metadata?.name || 
+           currentUser?.email?.split('@')[0] || 
+           'User';
+  };
+
+  const getUserInitial = () => {
+    const displayName = getUserDisplayName();
+    return displayName.charAt(0).toUpperCase();
   };
 
   const navItems = [
@@ -47,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="font-semibold text-lg">LoyaltyCard</div>
           <div className="relative">
             <button className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
-              {currentUser?.name.charAt(0) || 'U'}
+              {getUserInitial()}
             </button>
           </div>
         </div>
@@ -87,14 +102,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="p-4 border-t">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
-                {currentUser?.name.charAt(0) || 'U'}
+                {getUserInitial()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {currentUser?.name}
+                  {getUserDisplayName()}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  {currentUser?.businessName}
+                  {business?.name || 'Business'}
                 </p>
               </div>
             </div>
@@ -136,7 +151,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
               <div className="relative">
                 <button className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
-                  {currentUser?.name.charAt(0) || 'U'}
+                  {getUserInitial()}
                 </button>
               </div>
             </div>

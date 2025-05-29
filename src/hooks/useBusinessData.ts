@@ -7,9 +7,9 @@ export interface Business {
   id: string;
   name: string;
   email: string;
-  phone?: string;
-  address?: string;
-  logo_url?: string;
+  phone?: string | null;
+  address?: string | null;
+  logo_url?: string | null;
   settings?: any;
 }
 
@@ -28,11 +28,16 @@ export const useBusinessData = () => {
   }, [currentUser]);
 
   const fetchBusiness = async () => {
+    if (!currentUser?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('businesses')
         .select('*')
-        .eq('user_id', currentUser?.id)
+        .eq('user_id', currentUser.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
