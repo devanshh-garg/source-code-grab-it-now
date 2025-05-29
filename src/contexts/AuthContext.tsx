@@ -1,19 +1,15 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  businessName: string;
-}
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '../integrations/supabase/client';
 
 interface AuthContextType {
   currentUser: User | null;
+  session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, businessName: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,31 +28,38 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setCurrentUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setCurrentUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock login - in a real app, this would be an API call
-      // Simulating a successful login with mock data
-      const user = {
-        id: 'user-123',
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        name: 'John Doe',
-        businessName: 'Acme Coffee Shop',
-      };
+        password,
+      });
       
-      localStorage.setItem('user', JSON.stringify(user));
-      setCurrentUser(user);
+      if (error) throw error;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -65,20 +68,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (email: string, _password: string, name: string, businessName: string) => {
+  const signup = async (email: string, password: string, name: string, businessName: string) => {
     setLoading(true);
     try {
-      // Mock signup - in a real app, this would be an API call
-      // Simulating a successful signup with mock data
-      const user = {
-        id: 'user-' + Date.now(),
+      const { data, error } = await supabase.auth.signUp({
         email,
-        name,
-        businessName,
-      };
+        password,
+        options: {
+          data: {
+            full_name: name,
+            business_name: businessName,
+          }
+        }
+      });
       
-      localStorage.setItem('user', JSON.stringify(user));
-      setCurrentUser(user);
+      if (error) throw error;
+
+      // Create business record after successful signup
+      if (data.user) {
+        const { error: businessError } = await supabase
+          .from('businesses')
+          .insert({
+            user_id: data.user.id,
+            name: businessName,
+            email: email,
+          });
+
+        if (businessError) {
+          console.error('Business creation error:', businessError);
+          throw businessError;
+        }
+      }
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -87,13 +107,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    setCurrentUser(null);
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
 
   const value = {
     currentUser,
+    session,
     loading,
     login,
     signup,

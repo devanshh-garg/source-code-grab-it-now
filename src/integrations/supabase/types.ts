@@ -9,7 +9,210 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          settings: Json | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          settings?: Json | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          settings?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      customer_cards: {
+        Row: {
+          card_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          last_activity: string
+          metadata: Json | null
+          points: number
+          stamps: number
+          tier: string | null
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          last_activity?: string
+          metadata?: Json | null
+          points?: number
+          stamps?: number
+          tier?: string | null
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          last_activity?: string
+          metadata?: Json | null
+          points?: number
+          stamps?: number
+          tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_cards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_cards_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          business_id: string
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_cards: {
+        Row: {
+          active: boolean
+          business_id: string
+          created_at: string
+          design: Json
+          id: string
+          name: string
+          rules: Json
+          type: string
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          created_at?: string
+          design?: Json
+          id?: string
+          name: string
+          rules?: Json
+          type: string
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          created_at?: string
+          design?: Json
+          id?: string
+          name?: string
+          rules?: Json
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_cards_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          created_at: string
+          customer_card_id: string
+          id: string
+          metadata: Json | null
+          points: number
+          stamps: number
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_card_id: string
+          id?: string
+          metadata?: Json | null
+          points?: number
+          stamps?: number
+          type: string
+        }
+        Update: {
+          created_at?: string
+          customer_card_id?: string
+          id?: string
+          metadata?: Json | null
+          points?: number
+          stamps?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_customer_card_id_fkey"
+            columns: ["customer_card_id"]
+            isOneToOne: false
+            referencedRelation: "customer_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

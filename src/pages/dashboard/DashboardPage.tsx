@@ -6,36 +6,40 @@ import {
   ArrowUpRight, Plus, QrCode
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBusinessData } from '../../hooks/useBusinessData';
+import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const { business } = useBusinessData();
+  const { cards } = useLoyaltyCards();
 
   const stats = [
     { 
       name: 'Active Cards', 
-      value: '3', 
-      change: '+33%', 
+      value: cards.filter(card => card.active).length.toString(), 
+      change: '+0%', 
       trend: 'up', 
       icon: <CreditCard size={20} className="text-blue-600" /> 
     },
     { 
       name: 'Total Customers', 
-      value: '147', 
-      change: '+12%', 
+      value: '0', 
+      change: '+0%', 
       trend: 'up', 
       icon: <Users size={20} className="text-purple-600" /> 
     },
     { 
       name: 'Points Awarded', 
-      value: '1,253', 
-      change: '+24%', 
+      value: '0', 
+      change: '+0%', 
       trend: 'up', 
       icon: <QrCode size={20} className="text-emerald-600" /> 
     },
     { 
       name: 'Redemptions', 
-      value: '45', 
-      change: '+18%', 
+      value: '0', 
+      change: '+0%', 
       trend: 'up', 
       icon: <BarChart3 size={20} className="text-amber-600" /> 
     },
@@ -43,39 +47,28 @@ const DashboardPage: React.FC = () => {
 
   const recentActivity = [
     { 
-      type: 'Card Created', 
-      title: 'Summer Promo Card', 
-      time: '2 hours ago', 
+      type: 'Welcome', 
+      title: 'Welcome to your loyalty program dashboard!', 
+      time: 'Just now', 
       icon: <CreditCard size={16} className="text-blue-500" /> 
     },
-    { 
-      type: 'New Customer', 
-      title: 'Sarah Johnson joined', 
-      time: '3 hours ago', 
-      icon: <Users size={16} className="text-purple-500" /> 
-    },
-    { 
-      type: 'Points Awarded', 
-      title: '50 points to Michael B.', 
-      time: '5 hours ago', 
-      icon: <QrCode size={16} className="text-emerald-500" /> 
-    },
-    { 
-      type: 'Reward Redeemed', 
-      title: 'Free coffee by Alice T.', 
-      time: '1 day ago', 
-      icon: <BarChart3 size={16} className="text-amber-500" /> 
-    },
   ];
+
+  const getCardColorClass = (backgroundColor?: string) => {
+    if (backgroundColor) {
+      return `bg-[${backgroundColor}]`;
+    }
+    return 'from-blue-500 to-blue-600';
+  };
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {currentUser?.name}
+          Welcome back, {currentUser?.user_metadata?.full_name || currentUser?.email}
         </h1>
         <p className="text-gray-600 mt-1">
-          Here's what's happening with your loyalty program today.
+          {business ? `Managing ${business.name}` : "Here's what's happening with your loyalty program today."}
         </p>
       </div>
 
@@ -156,101 +149,80 @@ const DashboardPage: React.FC = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <CreditCard className="text-blue-600" size={16} />
-                  </div>
-                  <span className="font-bold">Coffee Rewards</span>
-                </div>
-                <div className="text-xs bg-blue-700 py-1 px-2 rounded-full">
-                  Active
-                </div>
-              </div>
-              <div className="space-y-2 mb-4">
-                <div className="grid grid-cols-5 gap-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
-                      <CreditCard className="text-white" size={14} />
+          {cards.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {cards.slice(0, 3).map((card) => (
+                <div key={card.id} className={`bg-gradient-to-r ${getCardColorClass(card.design?.backgroundColor)} rounded-lg p-4 text-white`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                        <CreditCard className="text-blue-600" size={16} />
+                      </div>
+                      <span className="font-bold">{card.name}</span>
                     </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
-                      <CreditCard className="text-white" size={14} />
+                    <div className="text-xs bg-white bg-opacity-20 py-1 px-2 rounded-full">
+                      {card.active ? 'Active' : 'Draft'}
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div className="text-center py-1 bg-white text-blue-600 rounded-md text-sm font-medium">
-                10 stamps = Free coffee
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <CreditCard className="text-purple-600" size={16} />
                   </div>
-                  <span className="font-bold">VIP Member</span>
-                </div>
-                <div className="text-xs bg-purple-700 py-1 px-2 rounded-full">
-                  Active
-                </div>
-              </div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-purple-200">Current Points</span>
-                <span className="font-bold">250 pts</span>
-              </div>
-              <div className="w-full bg-white bg-opacity-20 h-2 rounded-full mb-3">
-                <div className="bg-white h-2 rounded-full" style={{ width: '25%' }}></div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span>0</span>
-                <span>Next Reward: 1,000 pts</span>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <CreditCard className="text-amber-600" size={16} />
+                  {card.type === 'stamp' && (
+                    <div className="space-y-2 mb-4">
+                      <div className="grid grid-cols-5 gap-2">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
+                            <CreditCard className="text-white" size={14} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-5 gap-2">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
+                            <CreditCard className="text-white" size={14} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {card.type === 'points' && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-white text-opacity-80">Progress to reward</span>
+                        <span className="text-xs font-medium">0%</span>
+                      </div>
+                      <div className="w-full bg-white bg-opacity-20 h-2 rounded-full">
+                        <div className="bg-white h-2 rounded-full" style={{ width: '0%' }}></div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-center py-1 bg-white bg-opacity-20 rounded-md text-sm font-medium">
+                    {card.rules?.rewardTitle || 'Reward not set'}
                   </div>
-                  <span className="font-bold">Lunch Special</span>
                 </div>
-                <div className="text-xs bg-amber-700 py-1 px-2 rounded-full">
-                  Active
-                </div>
-              </div>
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-amber-200">Valid Until</span>
-                  <span className="font-medium">Dec 31, 2025</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-amber-200">Discount</span>
-                  <span className="font-medium">15% Off Lunch Menu</span>
-                </div>
-              </div>
-              <div className="text-center py-1 bg-white text-amber-600 rounded-md text-sm font-medium">
-                Use code: LUNCH15
-              </div>
+              ))}
+              
+              {cards.length < 4 && (
+                <Link 
+                  to="/cards/create"
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-500 transition-colors"
+                >
+                  <Plus size={24} className="mb-2" />
+                  <span className="font-medium">Create New Card</span>
+                  <span className="text-xs mt-1">Add to your collection</span>
+                </Link>
+              )}
             </div>
-            
-            <Link 
-              to="/cards/create"
-              className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-500 transition-colors"
-            >
-              <Plus size={24} className="mb-2" />
-              <span className="font-medium">Create New Card</span>
-              <span className="text-xs mt-1">Add to your collection</span>
-            </Link>
-          </div>
+          ) : (
+            <div className="text-center py-8">
+              <CreditCard size={32} className="mx-auto text-gray-400 mb-3" />
+              <p className="text-gray-500 mb-4">No loyalty cards created yet</p>
+              <Link 
+                to="/cards/create"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={16} className="mr-2" />
+                Create Your First Card
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Recent activity */}
