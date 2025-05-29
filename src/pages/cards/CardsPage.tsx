@@ -5,17 +5,28 @@ import {
   MoreVertical, Edit, Trash2, Copy, QrCode, Share2, Eye
 } from 'lucide-react';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
+import WalletPassActions from '../../components/cards/WalletPassActions';
 
 const CardsPage: React.FC = () => {
   const { cards, loading, deleteCard } = useLoyaltyCards();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCardMenu, setActiveCardMenu] = useState<string | null>(null);
+  const [showWalletActions, setShowWalletActions] = useState<string | null>(null);
 
   const toggleCardMenu = (cardId: string) => {
     if (activeCardMenu === cardId) {
       setActiveCardMenu(null);
     } else {
       setActiveCardMenu(cardId);
+    }
+  };
+
+  const toggleWalletActions = (cardId: string) => {
+    if (showWalletActions === cardId) {
+      setShowWalletActions(null);
+    } else {
+      setShowWalletActions(cardId);
+      setActiveCardMenu(null);
     }
   };
 
@@ -209,13 +220,20 @@ const CardsPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
-                <button className="text-sm text-blue-600 font-medium hover:text-blue-700">
-                  Edit Card
+                <button 
+                  onClick={() => toggleWalletActions(card.id)}
+                  className="text-sm text-blue-600 font-medium hover:text-blue-700"
+                >
+                  Wallet & Share
                 </button>
                 <button className="text-sm text-gray-600 font-medium hover:text-gray-700">
-                  Generate QR
+                  Edit Card
                 </button>
               </div>
+
+              {showWalletActions === card.id && (
+                <WalletPassActions card={card} />
+              )}
             </div>
           </div>
         ))}
