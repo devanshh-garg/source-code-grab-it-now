@@ -1,8 +1,33 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CreditCard, Smartphone, Award, ArrowRight, CheckCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../integrations/supabase/client';
 
 const HomePage: React.FC = () => {
+  const { currentUser, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!loading && currentUser) {
+        // Fetch the user's business profile from Supabase
+        const { data, error } = await supabase
+          .from('businesses')
+          .select('name')
+          .eq('user_id', currentUser.id)
+          .single();
+        if (error || !data || !data.name) {
+          navigate('/complete-profile');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    };
+    checkProfile();
+  }, [loading, currentUser, navigate]);
+
   return (
     <div className="min-h-screen">
       {/* Hero section */}
