@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   CreditCard, Palette, Coffee, Award, 
@@ -7,6 +8,9 @@ import {
   MapPin, Link, Instagram, Twitter, Facebook,
   Upload, Plus, Minus
 } from 'lucide-react';
+import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
+import { supabase } from '../../integrations/supabase/client';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Card type options
 const cardTypes = [
@@ -35,6 +39,11 @@ const colorThemes = [
 ];
 
 const CreateCardPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { createCard } = useLoyaltyCards();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [cardData, setCardData] = useState({
     name: '',
@@ -47,6 +56,7 @@ const CreateCardPage: React.FC = () => {
       text: '#FFFFFF',
     },
     logo: '',
+    logoUrl: '',
     stampGoal: 10,
     pointsGoal: 1000,
     reward: '',
@@ -82,6 +92,82 @@ const CreateCardPage: React.FC = () => {
       
       return newData;
     });
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    try {
+      setLoading(true);
+      
+      // Create a preview URL for immediate display
+      const previewUrl = URL.createObjectURL(file);
+      setCardData(prev => ({ ...prev, logo: previewUrl }));
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('business-logos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-logos')
+        .getPublicUrl(fileName);
+
+      setCardData(prev => ({ ...prev, logoUrl: publicUrl }));
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Failed to upload logo. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateCard = async () => {
+    if (!cardData.name.trim() || !cardData.type || !cardData.businessName.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      await createCard({
+        name: cardData.name.trim(),
+        type: cardData.type as 'stamp' | 'points' | 'tier',
+        design: {
+          backgroundColor: cardData.customColors.primary,
+          secondaryColor: cardData.customColors.secondary,
+          textColor: cardData.customColors.text,
+          logoUrl: cardData.logoUrl,
+        },
+        rules: {
+          rewardTitle: cardData.reward.trim(),
+          totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
+          termsAndConditions: cardData.termsAndConditions,
+        },
+        businessInfo: {
+          name: cardData.businessName.trim(),
+          address: cardData.businessAddress,
+          website: cardData.businessWebsite,
+          socialLinks: cardData.socialLinks,
+        },
+        active: true,
+      });
+
+      navigate('/cards');
+    } catch (error) {
+      console.error('Error creating card:', error);
+      alert('Failed to create card. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const nextStep = () => setCurrentStep(currentStep + 1);
@@ -392,13 +478,34 @@ const CreateCardPage: React.FC = () => {
                     Logo (Optional)
                   </label>
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <div className="flex flex-col items-center justify-center pt-7">
-                        <Upload size={24} className="text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500">Upload a logo</p>
-                        <p className="text-xs text-gray-400">PNG, JPG up to 2MB</p>
-                      </div>
-                      <input type="file" className="hidden" accept="image/*" />
+                    <label 
+                      className="flex flex-col w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {cardData.logo ? (
+                        <div className="flex flex-col items-center justify-center h-full">
+                          <img 
+                            src={cardData.logo} 
+                            alt="Logo preview" 
+                            className="h-20 w-20 object-contain"
+                          />
+                          <p className="text-xs text-gray-500 mt-2">Click to change</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center pt-7">
+                          <Upload size={24} className="text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">Upload a logo</p>
+                          <p className="text-xs text-gray-400">PNG, JPG up to 2MB</p>
+                        </div>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        disabled={loading}
+                      />
                     </label>
                   </div>
                 </div>
@@ -568,14 +675,17 @@ const CreateCardPage: React.FC = () => {
               Previous
             </button>
             <button
-              onClick={currentStep < 4 ? nextStep : () => {}}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+              onClick={currentStep < 4 ? nextStep : handleCreateCard}
+              disabled={loading}
+              className={`px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {currentStep < 4 ? (
                 <>
                   Next
                   <ChevronRight size={16} className="inline ml-1" />
                 </>
+              ) : loading ? (
+                'Creating...'
               ) : (
                 'Create Card'
               )}
