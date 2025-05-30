@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import "https://deno.land/x/qrcode_generator@v1.8.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,9 +13,13 @@ serve(async (req) => {
 
   try {
     const { cardId, cardUrl } = await req.json()
+    console.log('Generating QR code for cardId:', cardId, 'cardUrl:', cardUrl)
     
-    // Generate QR code using a simple QR library
-    const qrCode = await generateQRCode(cardUrl || `https://47d9b6bf-e151-426e-9a64-d6c41d6b6360.lovableproject.com/card/${cardId}`)
+    // Generate QR code using QR service
+    const url = cardUrl || `https://47d9b6bf-e151-426e-9a64-d6c41d6b6360.lovableproject.com/card/${cardId}`
+    const qrCode = await generateQRCode(url)
+    
+    console.log('Generated QR code URL:', qrCode)
     
     return new Response(JSON.stringify({ qrCode }), {
       headers: {
@@ -37,8 +40,8 @@ serve(async (req) => {
 })
 
 async function generateQRCode(url: string): Promise<string> {
-  // Simple QR code generation - in a real implementation, you'd use a proper QR library
-  // For now, we'll use a QR code service URL
+  // Use QR code service URL - this is a reliable external service
   const qrServiceUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`
+  console.log('Using QR service URL:', qrServiceUrl)
   return qrServiceUrl
 }
