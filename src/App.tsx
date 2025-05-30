@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -8,6 +9,7 @@ import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CardsPage from './pages/cards/CardsPage';
 import CreateCardPage from './pages/cards/CreateCardPage';
+import PublicCardPage from './pages/cards/PublicCardPage';
 import CustomersPage from './pages/customers/CustomersPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import ScannerPage from './pages/scanner/ScannerPage';
@@ -23,6 +25,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/card/:cardId" element={<PublicCardPage />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Layout>
