@@ -1,9 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  CreditCard, Palette, Coffee, Award, 
-  Gift, ShoppingBag, Utensils, BarChart, 
+  CreditCard, Coffee, Award, 
+  Gift, BarChart, 
   Check, ChevronRight, Smartphone,
   Instagram, Twitter, Facebook,
   Upload, Plus, Minus
@@ -140,12 +139,6 @@ const CreateCardPage: React.FC = () => {
         rules: {
           rewardTitle: cardData.reward.trim(),
           totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
-        },
-        businessInfo: {
-          name: cardData.businessName.trim(),
-          address: cardData.businessAddress,
-          website: cardData.businessWebsite,
-          socialLinks: cardData.socialLinks,
         },
         active: true,
       });
