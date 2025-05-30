@@ -54,7 +54,7 @@ const response = await fetch(EDGE_FUNCTION_URL, {
     passData: {
       cardId: card.id,
       cardName: card.name,
-      businessName: card.businessName || card.name,
+      businessName: card.name,
       rewardTitle: card.rules?.rewardTitle || '',
       backgroundColor: card.design?.backgroundColor || '#3B82F6',
       logoUrl: card.design?.logoUrl,

@@ -14,7 +14,7 @@ const WalletPassActions: React.FC<WalletPassActionsProps> = ({ card }) => {
 
   const handleGenerateQR = async () => {
     try {
-      const url = await generateQRCode(card);
+      const url = await generateQRCode(card.id);
       setQrCodeUrl(url);
     } catch (error) {
       alert('Failed to generate QR code');

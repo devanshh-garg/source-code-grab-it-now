@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
@@ -22,20 +23,25 @@ const CompleteProfilePage: React.FC = () => {
     try {
       // Debug: Log the current user id
       console.log('currentUser?.id:', currentUser?.id);
+      
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      
       // Upsert business info for this user
       const { error } = await supabase
         .from('businesses')
         .upsert({
-          user_id: currentUser?.id,
+          user_id: currentUser.id,
           name: businessName,
           email: email,
-        }, { onConflict: ['user_id'] });
+        }, { onConflict: 'user_id' });
       if (error) {
         setError('Supabase error: ' + error.message);
         throw error;
       }
       navigate('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       setError('Failed to update profile. ' + (err?.message || 'Please try again.'));
       console.error('Profile update error:', err);
     } finally {
@@ -84,4 +90,4 @@ const CompleteProfilePage: React.FC = () => {
   );
 };
 
-export default CompleteProfilePage; 
+export default CompleteProfilePage;

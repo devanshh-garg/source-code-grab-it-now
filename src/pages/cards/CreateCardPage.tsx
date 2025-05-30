@@ -1,11 +1,11 @@
+
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   CreditCard, Palette, Coffee, Award, 
   Gift, ShoppingBag, Utensils, BarChart, 
-  Check, ChevronRight, Image, Smartphone,
-  MapPin, Link, Instagram, Twitter, Facebook,
+  Check, ChevronRight, Smartphone,
+  Instagram, Twitter, Facebook,
   Upload, Plus, Minus
 } from 'lucide-react';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
@@ -18,14 +18,6 @@ const cardTypes = [
   { id: 'points', name: 'Points System', icon: <Award size={20} /> },
   { id: 'tiered', name: 'Tiered Membership', icon: <BarChart size={20} /> },
   { id: 'discount', name: 'Discount Card', icon: <Gift size={20} /> },
-];
-
-// Card templates
-const cardTemplates = [
-  { id: 'coffee', name: 'Coffee Shop', icon: <Coffee size={20} /> },
-  { id: 'restaurant', name: 'Restaurant', icon: <Utensils size={20} /> },
-  { id: 'retail', name: 'Retail Store', icon: <ShoppingBag size={20} /> },
-  { id: 'custom', name: 'Custom Design', icon: <Palette size={20} /> },
 ];
 
 // Color themes
@@ -109,7 +101,7 @@ const CreateCardPage: React.FC = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
       
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('business-logos')
         .upload(fileName, file);
 
@@ -143,14 +135,11 @@ const CreateCardPage: React.FC = () => {
         type: cardData.type as 'stamp' | 'points' | 'tier',
         design: {
           backgroundColor: cardData.customColors.primary,
-          secondaryColor: cardData.customColors.secondary,
-          textColor: cardData.customColors.text,
           logoUrl: cardData.logoUrl,
         },
         rules: {
           rewardTitle: cardData.reward.trim(),
           totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
-          termsAndConditions: cardData.termsAndConditions,
         },
         businessInfo: {
           name: cardData.businessName.trim(),
