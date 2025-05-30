@@ -16,7 +16,6 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     
-    // Basic validation
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
@@ -31,6 +30,24 @@ const LoginPage: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/dashboard'
+        }
+      });
+      if (error) {
+        console.error('Google sign-in error:', error);
+        setError('Failed to sign in with Google');
+      }
+    } catch (err) {
+      console.error('Google sign-in error:', err);
+      setError('Failed to sign in with Google');
     }
   };
 
@@ -159,12 +176,7 @@ const LoginPage: React.FC = () => {
                 <div>
                   <button
                     type="button"
-                    onClick={async () => {
-                      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-                      if (error) {
-                        console.error('Google sign-in error:', error);
-                      }
-                    }}
+                    onClick={handleGoogleLogin}
                     className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                   >
                     <span className="sr-only">Sign in with Google</span>
