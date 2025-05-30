@@ -83,22 +83,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) throw error;
-
-      // Create business record after successful signup
-      if (data.user) {
-        const { error: businessError } = await supabase
-          .from('businesses')
-          .insert({
-            user_id: data.user.id,
-            name: businessName,
-            email: email,
-          });
-
-        if (businessError) {
-          console.error('Business creation error:', businessError);
-          throw businessError;
-        }
-      }
+      // Redirect to /verify-email after successful signup
+      window.location.href = '/verify-email';
     } catch (error) {
       console.error('Signup error:', error);
       throw error;

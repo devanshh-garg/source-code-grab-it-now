@@ -20,6 +20,8 @@ const CompleteProfilePage: React.FC = () => {
     }
     setLoading(true);
     try {
+      // Debug: Log the current user id
+      console.log('currentUser?.id:', currentUser?.id);
       // Upsert business info for this user
       const { error } = await supabase
         .from('businesses')
@@ -28,11 +30,14 @@ const CompleteProfilePage: React.FC = () => {
           name: businessName,
           email: email,
         }, { onConflict: ['user_id'] });
-      if (error) throw error;
+      if (error) {
+        setError('Supabase error: ' + error.message);
+        throw error;
+      }
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to update profile. Please try again.');
-      console.error(err);
+      setError('Failed to update profile. ' + (err?.message || 'Please try again.'));
+      console.error('Profile update error:', err);
     } finally {
       setLoading(false);
     }

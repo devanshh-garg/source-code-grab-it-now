@@ -12,6 +12,8 @@ import CustomersPage from './pages/customers/CustomersPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import ScannerPage from './pages/scanner/ScannerPage';
 import NotFoundPage from './pages/NotFoundPage';
+import CompleteProfilePage from './pages/CompleteProfilePage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 
 function App() {
   return (
@@ -56,6 +58,14 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
+          <Route path="/complete-profile" element={
+            <ProtectedRoute>
+              <Layout>
+                <CompleteProfilePage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/scanner" element={
             <ProtectedRoute>
               <Layout>

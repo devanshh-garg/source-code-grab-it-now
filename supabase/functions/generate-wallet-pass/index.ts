@@ -1,158 +1,154 @@
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import * as jose from "npm:jsonwebtoken";
 
 interface PassData {
-  cardId: string
-  cardName: string
-  businessName: string
-  rewardTitle: string
-  backgroundColor: string
-  logoUrl?: string
-  type: 'stamp' | 'points' | 'tier'
-  totalNeeded: number
+  cardId: string;
+  cardName: string;
+  businessName: string;
+  rewardTitle?: string;
+  backgroundColor?: string;
+  logoUrl?: string;
+  type?: string;
+  totalNeeded?: number;
+  classId?: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      },
+    });
   }
 
   try {
-    const { passData, passType } = await req.json() as { 
-      passData: PassData, 
-      passType: 'apple' | 'google' 
-    }
+    const { passData, passType } = await req.json();
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    )
-
-    // Generate pass based on type
     if (passType === 'apple') {
-      const applePass = await generateAppleWalletPass(passData)
+      const applePass = await generateAppleWalletPass(passData);
       return new Response(applePass, {
         headers: {
-          ...corsHeaders,
+          'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/vnd.apple.pkpass',
           'Content-Disposition': `attachment; filename="${passData.cardName}.pkpass"`
         }
-      })
-    } else {
-      const googlePass = await generateGoogleWalletPass(passData)
-      return new Response(JSON.stringify(googlePass), {
+      });
+    } else if (passType === 'google') {
+      // Google Wallet logic
+      const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+      if (!serviceAccountJson) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_KEY env var");
+      const serviceAccount = JSON.parse(serviceAccountJson);
+
+      const loyaltyObject = {
+        id: `${serviceAccount.project_id}.${passData.cardId}`,
+        classId: `${serviceAccount.project_id}.${passData.classId || "loyalty_class_generic"}`,
+        state: "ACTIVE",
+        loyaltyPoints: {
+          balance: { string: "0" }
+        },
+        accountName: passData.businessName,
+        accountId: passData.cardId,
+        textModulesData: [
+          {
+            header: "Reward",
+            body: passData.rewardTitle || ''
+          }
+        ],
+        barcode: {
+          type: "QR_CODE",
+          value: `loyalty:${passData.cardId}`
+        }
+      };
+
+      const payload = {
+        iss: serviceAccount.client_email,
+        aud: "google",
+        origins: ["*"],
+        typ: "savetowallet",
+        payload: {
+          loyaltyObjects: [loyaltyObject]
+        }
+      };
+
+      const jwt = jose.sign(payload, serviceAccount.private_key, { algorithm: "RS256" });
+      return new Response(JSON.stringify({ jwt }), {
+        status: 200,
         headers: {
-          ...corsHeaders,
+          'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json'
         }
-      })
+      });
+    } else {
+      return new Response(JSON.stringify({ error: "Invalid passType" }), {
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        }
+      });
     }
   } catch (error) {
-    console.error('Error generating wallet pass:', error)
-    return new Response(
-      JSON.stringify({ error: 'Failed to generate wallet pass' }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
       }
-    )
+    });
   }
-})
+});
 
+// Dummy Apple Wallet pass generator (replace with your actual implementation)
 async function generateAppleWalletPass(passData: PassData): Promise<Uint8Array> {
-  // Simplified Apple Wallet pass structure
-  const passJson = {
-    formatVersion: 1,
-    passTypeIdentifier: "pass.com.loyaltyapp.card",
-    serialNumber: passData.cardId,
-    teamIdentifier: "TEAM123456",
-    organizationName: passData.businessName,
-    description: passData.cardName,
-    logoText: passData.businessName,
-    foregroundColor: "rgb(255, 255, 255)",
-    backgroundColor: passData.backgroundColor,
-    storeCard: {
-      primaryFields: [
-        {
-          key: "balance",
-          label: passData.type === 'stamp' ? "Stamps" : "Points",
-          value: "0"
-        }
-      ],
-      secondaryFields: [
-        {
-          key: "reward",
-          label: "Reward",
-          value: passData.rewardTitle
-        }
-      ],
-      auxiliaryFields: [
-        {
-          key: "total",
-          label: "Goal",
-          value: passData.totalNeeded.toString()
-        }
-      ]
-    },
-    barcodes: [
-      {
-        message: `loyalty:${passData.cardId}`,
-        format: "PKBarcodeFormatQR",
-        messageEncoding: "iso-8859-1"
-      }
-    ]
-  }
-
-  // For a real implementation, you would need to:
-  // 1. Create the pass.json file
-  // 2. Add images (logo, icon, etc.)
-  // 3. Create a manifest.json with file hashes
-  // 4. Sign with Apple certificates
-  // 5. Create a .pkpass zip file
-
-  // This is a simplified version that returns the JSON structure
-  const encoder = new TextEncoder()
-  return encoder.encode(JSON.stringify(passJson, null, 2))
+  // TODO: Implement real Apple Wallet pass generation
+  return new Uint8Array();
 }
+
+import * as jose from "npm:jsonwebtoken";
 
 async function generateGoogleWalletPass(passData: PassData) {
-  // Google Wallet pass structure
-  return {
-    iss: "loyalty-app@example.com",
-    aud: "google",
-    typ: "savetowallet",
-    iat: Math.floor(Date.now() / 1000),
-    payload: {
-      loyaltyObjects: [
-        {
-          id: `loyalty_object_${passData.cardId}`,
-          classId: "loyalty_class_generic",
-          state: "ACTIVE",
-          loyaltyPoints: {
-            balance: {
-              string: "0"
-            }
-          },
-          accountName: passData.businessName,
-          accountId: passData.cardId,
-          textModulesData: [
-            {
-              header: "Reward",
-              body: passData.rewardTitle
-            }
-          ],
-          barcode: {
-            type: "QR_CODE",
-            value: `loyalty:${passData.cardId}`
-          }
-        }
-      ]
+  // Read service account from env var
+  const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+  if (!serviceAccountJson) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_KEY env var");
+  const serviceAccount = JSON.parse(serviceAccountJson);
+
+  // Build the loyalty object
+  const loyaltyObject = {
+    id: `${serviceAccount.project_id}.${passData.cardId}`,
+    classId: `${serviceAccount.project_id}.${passData.classId || "loyalty_class_generic"}`,
+    state: "ACTIVE",
+    loyaltyPoints: {
+      balance: { string: "0" }
+    },
+    accountName: passData.businessName,
+    accountId: passData.cardId,
+    textModulesData: [
+      {
+        header: "Reward",
+        body: passData.rewardTitle
+      }
+    ],
+    barcode: {
+      type: "QR_CODE",
+      value: `loyalty:${passData.cardId}`
     }
-  }
+  };
+
+  // Build JWT payload
+  const payload = {
+    iss: serviceAccount.client_email,
+    aud: "google",
+    origins: ["*"],
+    typ: "savetowallet",
+    payload: {
+      loyaltyObjects: [loyaltyObject]
+    }
+  };
+
+  // Sign JWT
+  const jwt = jose.sign(payload, serviceAccount.private_key, { algorithm: "RS256" });
+  return { jwt };
 }
+

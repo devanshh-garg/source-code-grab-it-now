@@ -10,7 +10,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser } = useAuth();
 
   if (!currentUser) {
-    return <Navigate to="/login\" replace />;
+    return <Navigate to="/login" replace />;
+  }
+
+  // Block access if email is not verified
+  if (!currentUser.email_confirmed_at) {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return <>{children}</>;
