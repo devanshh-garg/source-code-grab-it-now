@@ -9,24 +9,42 @@ export const useWalletPasses = () => {
   const generateWalletPass = async (card: LoyaltyCard, passType: 'apple' | 'google') => {
     setLoading(true);
     try {
+      console.log('Generating wallet pass for card:', card);
+      console.log('Pass type:', passType);
+
+      // Validate required card data
+      if (!card.id || !card.name) {
+        throw new Error("Card is missing required fields (id, name)");
+      }
+
+      const passData = {
+        cardId: card.id,
+        cardName: card.name,
+        businessName: card.name, // Use card name as business name since we don't have a separate business name field
+        rewardTitle: card.rules?.rewardTitle || 'Loyalty Reward',
+        backgroundColor: card.design?.backgroundColor || '#3B82F6',
+        logoUrl: card.design?.logoUrl || null,
+        type: card.type,
+        totalNeeded: card.rules?.totalNeeded || 10,
+        classId: 'loyalty_class_1' // Fixed class ID for now
+      };
+
+      console.log('Sending pass data:', passData);
+
       if (passType === 'apple') {
-        // Apple Wallet logic (leave as-is for now)
+        // Apple Wallet logic
         const { data, error } = await supabase.functions.invoke('generate-wallet-pass', {
           body: {
-            passData: {
-              cardId: card.id,
-              cardName: card.name,
-              businessName: card.name,
-              rewardTitle: card.rules?.rewardTitle || '',
-              backgroundColor: card.design?.backgroundColor || '#3B82F6',
-              logoUrl: card.design?.logoUrl,
-              type: card.type,
-              totalNeeded: card.rules?.totalNeeded || 10
-            },
+            passData,
             passType
           }
         });
-        if (error) throw error;
+        
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw error;
+        }
+        
         const blob = new Blob([data], { type: 'application/vnd.apple.pkpass' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -36,63 +54,33 @@ export const useWalletPasses = () => {
         URL.revokeObjectURL(url);
         return data;
       } else {
-        // Google Wallet logic: use direct fetch to deployed Edge Function
-        const EDGE_FUNCTION_URL = 'https://jynzkzucubcmhmidsgki.functions.supabase.co/google-wallet-function';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bnprenVjdWJjbWhtaWRzZ2tpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMTQ3NzAsImV4cCI6MjA2MzU5MDc3MH0.D4De3B6dBeAzr86Ym41_Z317jWSMpVHu4feaj87CrDk';
-// Defensive: ensure all required fields are present before making the request
-if (!card.id || !card.name || !card.type || !card.rules?.totalNeeded) {
-  throw new Error("Missing required card fields for Google Wallet pass generation.");
-}
+        // Google Wallet logic: use Supabase function invoke
+        const { data, error } = await supabase.functions.invoke('generate-wallet-pass', {
+          body: {
+            passData,
+            passType: 'google'
+          }
+        });
 
-const response = await fetch(EDGE_FUNCTION_URL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-  },
-  body: JSON.stringify({
-    passData: {
-      cardId: card.id,
-      cardName: card.name,
-      businessName: card.name,
-      rewardTitle: card.rules?.rewardTitle || '',
-      backgroundColor: card.design?.backgroundColor || '#3B82F6',
-      logoUrl: card.design?.logoUrl,
-      type: card.type,
-      totalNeeded: card.rules?.totalNeeded || 10,
-      classId: '338800000002295058.loyalty_class_1'
-    },
-    passType: 'google'
-  })
-});
-        if (!response.ok) {
-          let error = 'Edge Function error';
-          try {
-            const data = await response.json();
-            if (data.error) {
-              error = data.error;
-              if (data.details) {
-                error += ': ' + data.details;
-              }
-            }
-          } catch {}
-          throw new Error(error);
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw error;
         }
-        const { jwt } = await response.json();
-        const saveUrl = `https://pay.google.com/gp/v/save/${jwt}`;
+
+        if (!data || !data.jwt) {
+          throw new Error('No JWT received from server');
+        }
+
+        console.log('Received JWT, opening Google Wallet...');
+        const saveUrl = `https://pay.google.com/gp/v/save/${data.jwt}`;
         window.open(saveUrl, '_blank');
-        return jwt;
+        return data.jwt;
       }
     } catch (error: any) {
-      console.error('Error generating wallet pass:', error, {
-        card,
-        passType,
-      });
-      let errorMessage = 'Failed to generate wallet pass.';
+      console.error('Error generating wallet pass:', error);
+      let errorMessage = 'Failed to generate wallet pass';
       if (error?.message) {
-        errorMessage += `\n${error.message}`;
-      } else if (typeof error === 'string') {
-        errorMessage += `\n${error}`;
+        errorMessage += `: ${error.message}`;
       }
       alert(errorMessage);
       throw error;
