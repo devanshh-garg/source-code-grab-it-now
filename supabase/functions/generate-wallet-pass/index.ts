@@ -40,18 +40,53 @@ serve(async (req) => {
       // Google Wallet logic
       const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
       if (!serviceAccountJson) {
-        throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_KEY environment variable");
+        console.error("GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set");
+        return new Response(JSON.stringify({ 
+          error: "Google service account not configured. Please set GOOGLE_SERVICE_ACCOUNT_KEY in your Supabase project secrets.",
+          details: "Missing GOOGLE_SERVICE_ACCOUNT_KEY environment variable"
+        }), {
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          }
+        });
       }
       
       let serviceAccount;
       try {
         serviceAccount = JSON.parse(serviceAccountJson);
+        console.log('Service account parsed successfully');
       } catch (parseError) {
-        throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: not valid JSON");
+        console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", parseError);
+        return new Response(JSON.stringify({ 
+          error: "Invalid Google service account configuration. Please check your GOOGLE_SERVICE_ACCOUNT_KEY format.",
+          details: "Service account JSON is not valid"
+        }), {
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          }
+        });
       }
 
-      if (!serviceAccount.project_id || !serviceAccount.client_email || !serviceAccount.private_key) {
-        throw new Error("Invalid service account: missing required fields (project_id, client_email, private_key)");
+      // Validate required service account fields
+      const requiredFields = ['project_id', 'client_email', 'private_key'];
+      const missingFields = requiredFields.filter(field => !serviceAccount[field]);
+      
+      if (missingFields.length > 0) {
+        console.error("Missing required service account fields:", missingFields);
+        return new Response(JSON.stringify({ 
+          error: `Invalid Google service account: missing required fields: ${missingFields.join(', ')}`,
+          details: "Please ensure your service account JSON contains all required fields"
+        }), {
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          }
+        });
       }
 
       const loyaltyObject = {
@@ -87,7 +122,7 @@ serve(async (req) => {
         }
       };
 
-      console.log('JWT payload:', JSON.stringify(payload, null, 2));
+      console.log('JWT payload prepared');
 
       try {
         const jwt = jose.sign(payload, serviceAccount.private_key, { algorithm: "RS256" });
@@ -102,20 +137,32 @@ serve(async (req) => {
         });
       } catch (jwtError) {
         console.error('JWT generation error:', jwtError);
-        throw new Error(`JWT generation failed: ${jwtError.message}`);
+        return new Response(JSON.stringify({ 
+          error: `JWT generation failed: ${jwtError.message}`,
+          details: "Check your service account private key format"
+        }), {
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          }
+        });
       }
     } else if (passType === 'apple') {
       // Apple Wallet logic (placeholder)
-      const applePass = await generateAppleWalletPass(passData);
-      return new Response(applePass, {
+      return new Response(JSON.stringify({ 
+        error: "Apple Wallet pass generation not implemented yet" 
+      }), {
+        status: 501,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/vnd.apple.pkpass',
-          'Content-Disposition': `attachment; filename="${passData.cardName}.pkpass"`
+          'Content-Type': 'application/json'
         }
       });
     } else {
-      return new Response(JSON.stringify({ error: "Invalid passType. Must be 'apple' or 'google'" }), {
+      return new Response(JSON.stringify({ 
+        error: "Invalid passType. Must be 'apple' or 'google'" 
+      }), {
         status: 400,
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -137,10 +184,3 @@ serve(async (req) => {
     });
   }
 });
-
-// Dummy Apple Wallet pass generator (replace with your actual implementation)
-async function generateAppleWalletPass(passData: PassData): Promise<Uint8Array> {
-  // TODO: Implement real Apple Wallet pass generation
-  console.log('Apple Wallet pass generation not implemented yet');
-  return new Uint8Array();
-}

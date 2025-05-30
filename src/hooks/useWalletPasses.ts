@@ -31,42 +31,32 @@ export const useWalletPasses = () => {
 
       console.log('Sending pass data:', passData);
 
-      if (passType === 'apple') {
-        // Apple Wallet logic
-        const { data, error } = await supabase.functions.invoke('generate-wallet-pass', {
-          body: {
-            passData,
-            passType
-          }
-        });
-        
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw error;
+      const { data, error } = await supabase.functions.invoke('generate-wallet-pass', {
+        body: {
+          passData,
+          passType
         }
-        
-        const blob = new Blob([data], { type: 'application/vnd.apple.pkpass' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${card.name}.pkpass`;
-        a.click();
-        URL.revokeObjectURL(url);
+      });
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to generate wallet pass');
+      }
+
+      if (passType === 'apple') {
+        // Apple Wallet logic - download file
+        if (data) {
+          const blob = new Blob([data], { type: 'application/vnd.apple.pkpass' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${card.name}.pkpass`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
         return data;
       } else {
-        // Google Wallet logic: use Supabase function invoke
-        const { data, error } = await supabase.functions.invoke('generate-wallet-pass', {
-          body: {
-            passData,
-            passType: 'google'
-          }
-        });
-
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw error;
-        }
-
+        // Google Wallet logic - open URL
         if (!data || !data.jwt) {
           throw new Error('No JWT received from server');
         }
@@ -78,10 +68,21 @@ export const useWalletPasses = () => {
       }
     } catch (error: any) {
       console.error('Error generating wallet pass:', error);
+      
+      // Show user-friendly error messages
       let errorMessage = 'Failed to generate wallet pass';
       if (error?.message) {
-        errorMessage += `: ${error.message}`;
+        if (error.message.includes('Google service account not configured')) {
+          errorMessage = 'Google Wallet integration is not configured. Please contact support.';
+        } else if (error.message.includes('Invalid Google service account')) {
+          errorMessage = 'Google Wallet configuration error. Please contact support.';
+        } else if (error.message.includes('JWT generation failed')) {
+          errorMessage = 'Error creating wallet pass. Please try again.';
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
       }
+      
       alert(errorMessage);
       throw error;
     } finally {
