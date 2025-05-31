@@ -96,6 +96,74 @@ export type Database = {
           },
         ]
       }
+      customer_oxxkvd_cards: {
+        Row: {
+          business_id: string
+          card_id: string
+          created_at: string
+          id: string
+          last_activity: string
+          points: number | null
+          stamps: number | null
+          tier: string | null
+          user_email: string
+        }
+        Insert: {
+          business_id: string
+          card_id: string
+          created_at?: string
+          id?: string
+          last_activity?: string
+          points?: number | null
+          stamps?: number | null
+          tier?: string | null
+          user_email: string
+        }
+        Update: {
+          business_id?: string
+          card_id?: string
+          created_at?: string
+          id?: string
+          last_activity?: string
+          points?: number | null
+          stamps?: number | null
+          tier?: string | null
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_oxxkvd_cards_user_email_fkey"
+            columns: ["user_email"]
+            isOneToOne: false
+            referencedRelation: "customer_oxxkvd_profiles"
+            referencedColumns: ["user_email"]
+          },
+        ]
+      }
+      customer_oxxkvd_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          user_email?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           business_id: string
