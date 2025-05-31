@@ -6,7 +6,7 @@ import { useBusinessData } from './useBusinessData';
 export interface LoyaltyCard {
   id: string;
   name: string;
-  type: 'stamp' | 'points' | 'tier';
+  type: 'stamp' | 'points' | 'tier' | 'tiered' | 'discount';
   design: {
     backgroundColor?: string;
     logoUrl?: string;
@@ -55,7 +55,7 @@ export const useLoyaltyCards = () => {
       const transformedCards: LoyaltyCard[] = (data || []).map(card => ({
         id: card.id,
         name: card.name,
-        type: card.type as 'stamp' | 'points' | 'tier',
+        type: card.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
         design: card.design as { backgroundColor?: string; logoUrl?: string },
         rules: card.rules as { rewardTitle?: string; totalNeeded?: number },
         active: card.active,

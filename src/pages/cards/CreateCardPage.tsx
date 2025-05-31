@@ -131,7 +131,7 @@ const CreateCardPage: React.FC = () => {
       
       await createCard({
         name: cardData.name.trim(),
-        type: cardData.type as 'stamp' | 'points' | 'tier',
+        type: cardData.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
         design: {
           backgroundColor: cardData.customColors.primary,
           logoUrl: cardData.logoUrl,
@@ -230,7 +230,7 @@ const CreateCardPage: React.FC = () => {
             </div>
           )}
 
-          {type === 'tiered' && (
+          {(type === 'tiered' || type === 'tier') && (
             <div className="grid grid-cols-3 gap-2 mb-4">
               <div 
                 className="text-center py-2 rounded-md"
@@ -252,6 +252,18 @@ const CreateCardPage: React.FC = () => {
               >
                 <div className="text-xs mb-1">Platinum</div>
                 <div className="text-xs">$1000</div>
+              </div>
+            </div>
+          )}
+
+          {type === 'discount' && (
+            <div className="mb-4">
+              <div 
+                className="text-center py-3 rounded-md"
+                style={{ backgroundColor: `${customColors.text}20` }}
+              >
+                <div className="text-lg font-bold">10% OFF</div>
+                <div className="text-xs opacity-80">Next Purchase</div>
               </div>
             </div>
           )}
