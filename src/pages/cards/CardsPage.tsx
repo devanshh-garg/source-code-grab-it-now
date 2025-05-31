@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -30,11 +31,15 @@ const CardsPage: React.FC = () => {
     }
   };
 
-  const getCardColorClass = (backgroundColor?: string) => {
+  const getCardStyle = (backgroundColor?: string) => {
     if (backgroundColor) {
-      return `bg-[${backgroundColor}]`;
+      return {
+        background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor}CC)`,
+      };
     }
-    return 'from-blue-500 to-blue-600';
+    return {
+      background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+    };
   };
 
   const handleDeleteCard = async (cardId: string) => {
@@ -113,7 +118,10 @@ const CardsPage: React.FC = () => {
             key={card.id} 
             className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
           >
-            <div className={`bg-gradient-to-r ${getCardColorClass(card.design?.backgroundColor)} text-white p-4`}>
+            <div 
+              className="text-white p-4"
+              style={getCardStyle(card.design?.backgroundColor)}
+            >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
@@ -167,19 +175,21 @@ const CardsPage: React.FC = () => {
               {card.type === 'stamp' && (
                 <div className="space-y-2 mb-4">
                   <div className="grid grid-cols-5 gap-1">
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(Math.min(5, card.rules?.totalNeeded || 10))].map((_, i) => (
                       <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
                         <CreditCard className="text-white" size={12} />
                       </div>
                     ))}
                   </div>
-                  <div className="grid grid-cols-5 gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
-                        <CreditCard className="text-white" size={12} />
-                      </div>
-                    ))}
-                  </div>
+                  {(card.rules?.totalNeeded || 10) > 5 && (
+                    <div className="grid grid-cols-5 gap-1">
+                      {[...Array(Math.min(5, (card.rules?.totalNeeded || 10) - 5))].map((_, i) => (
+                        <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
+                          <CreditCard className="text-white" size={12} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {card.type === 'points' && (
@@ -193,6 +203,9 @@ const CardsPage: React.FC = () => {
                   </div>
                 </div>
               )}
+              <div className="text-center py-2 bg-white bg-opacity-20 rounded-md text-sm">
+                {card.rules?.rewardTitle || 'Loyalty Reward'}
+              </div>
             </div>
             <div className="p-4">
               <div className="grid grid-cols-2 gap-4">
