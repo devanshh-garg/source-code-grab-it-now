@@ -17,7 +17,7 @@ const HomePage: React.FC = () => {
           .from('businesses')
           .select('name')
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle();
         if (error || !data || !data.name) {
           navigate('/complete-profile');
         } else {
