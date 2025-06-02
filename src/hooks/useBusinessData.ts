@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,14 +37,14 @@ export const useBusinessData = () => {
         .from('businesses')
         .select('*')
         .eq('user_id', currentUser.id)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching business:', error);
         return;
       }
 
-      setBusiness(data);
+      setBusiness(data && data.length > 0 ? data[0] : null);
     } catch (error) {
       console.error('Error fetching business:', error);
     } finally {
