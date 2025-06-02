@@ -6,6 +6,8 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CardsPage from './pages/cards/CardsPage';
 import CreateCardPage from './pages/cards/CreateCardPage';
@@ -25,6 +27,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/card/:cardId" element={<PublicCardPage />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
@@ -68,7 +73,6 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/scanner" element={
             <ProtectedRoute>
               <Layout>

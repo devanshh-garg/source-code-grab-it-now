@@ -10,6 +10,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, businessName: string) => Promise<void>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +36,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email_confirmed_at);
         setSession(session);
         setCurrentUser(session?.user ?? null);
         setLoading(false);
@@ -75,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: name,
             business_name: businessName,
@@ -83,8 +87,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) throw error;
-      // Redirect to /verify-email after successful signup
-      window.location.href = '/verify-email';
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -103,6 +105,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    if (error) throw error;
+  };
+
+  const resendVerification = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    
+    if (error) throw error;
+  };
+
   const value = {
     currentUser,
     session,
@@ -110,6 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     signup,
     logout,
+    resetPassword,
+    resendVerification,
   };
 
   return (
