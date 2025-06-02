@@ -86,16 +86,37 @@ const AnalyticsPage: React.FC = () => {
 
       setStats(totals);
 
-      // Fetch reward distribution - Fixed query to use correct aggregation syntax
-      const { data: rewardsData, error: rewardsError } = await supabase
+      // Fetch transactions and calculate distribution
+      const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
-        .select('type, count(*)')
-        .eq('business_id', business?.id)
-        .gte('created_at', startDate.toISOString());
+        .select(`
+          type,
+          customer_card:customer_card_id (
+            card:card_id (
+              business_id
+            )
+          )
+        `)
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: false });
 
-      if (rewardsError) throw rewardsError;
+      if (transactionsError) throw transactionsError;
 
-      setRewardDistribution(rewardsData || []);
+      // Filter transactions for current business and aggregate by type
+      const businessTransactions = transactionsData
+        ?.filter(tx => tx.customer_card?.card?.business_id === business?.id) || [];
+
+      const distribution = businessTransactions.reduce((acc: any[], transaction) => {
+        const existingType = acc.find(item => item.type === transaction.type);
+        if (existingType) {
+          existingType.count++;
+        } else {
+          acc.push({ type: transaction.type, count: 1 });
+        }
+        return acc;
+      }, []);
+
+      setRewardDistribution(distribution);
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
