@@ -1,51 +1,121 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, TrendingUp, Users, CreditCard, 
   Calendar, ChevronDown, Download, Filter,
-  Share2, Clock
+  Share2, Clock, ArrowUpRight, ArrowDownRight,
+  DollarSign, Target, UserPlus, Award
 } from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell
+} from 'recharts';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { supabase } from '../../integrations/supabase/client';
+import { useBusinessData } from '../../hooks/useBusinessData';
+
+const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
 
 const AnalyticsPage: React.FC = () => {
+  const { business } = useBusinessData();
   const [dateRange, setDateRange] = useState('last30');
-  
-  const stats = [
-    { 
-      name: 'Total Card Scans', 
-      value: '1,253', 
-      change: '+12.5%', 
-      trend: 'up', 
-      icon: <CreditCard size={20} className="text-blue-600" /> 
-    },
-    { 
-      name: 'Active Customers', 
-      value: '124', 
-      change: '+8.2%', 
-      trend: 'up', 
-      icon: <Users size={20} className="text-purple-600" /> 
-    },
-    { 
-      name: 'Reward Redemptions', 
-      value: '45', 
-      change: '+18.3%', 
-      trend: 'up', 
-      icon: <BarChart3 size={20} className="text-emerald-600" /> 
-    },
-    { 
-      name: 'Avg. Points per Customer', 
-      value: '287', 
-      change: '+5.7%', 
-      trend: 'up', 
-      icon: <TrendingUp size={20} className="text-amber-600" /> 
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>({
+    totalVisits: 0,
+    totalPoints: 0,
+    activeCustomers: 0,
+    redemptions: 0,
+    revenue: 0,
+    newCustomers: 0
+  });
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
+  const [rewardDistribution, setRewardDistribution] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (business?.id) {
+      fetchAnalytics();
+    }
+  }, [business, dateRange]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+
+      // Calculate date range
+      const endDate = endOfDay(new Date());
+      const startDate = startOfDay(
+        subDays(endDate, dateRange === 'last7' ? 7 : dateRange === 'last30' ? 30 : 90)
+      );
+
+      // Fetch daily stats
+      const { data: statsData, error: statsError } = await supabase
+        .from('analytics_daily_stats')
+        .select('*')
+        .eq('business_id', business?.id)
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString())
+        .order('date', { ascending: true });
+
+      if (statsError) throw statsError;
+
+      // Process daily stats
+      const processedStats = statsData?.map(day => ({
+        date: format(new Date(day.date), 'MMM dd'),
+        visits: day.total_visits,
+        points: day.total_points_earned,
+        revenue: day.revenue_cents / 100
+      })) || [];
+
+      setDailyStats(processedStats);
+
+      // Calculate totals
+      const totals = statsData?.reduce((acc, curr) => ({
+        totalVisits: acc.totalVisits + curr.total_visits,
+        totalPoints: acc.totalPoints + curr.total_points_earned,
+        activeCustomers: acc.activeCustomers + curr.active_customers,
+        redemptions: acc.redemptions + curr.total_points_redeemed,
+        revenue: acc.revenue + curr.revenue_cents,
+        newCustomers: acc.newCustomers + curr.new_customers
+      }), {
+        totalVisits: 0,
+        totalPoints: 0,
+        activeCustomers: 0,
+        redemptions: 0,
+        revenue: 0,
+        newCustomers: 0
+      });
+
+      setStats(totals);
+
+      // Fetch reward distribution
+      const { data: rewardsData, error: rewardsError } = await supabase
+        .from('transactions')
+        .select('type, count')
+        .eq('business_id', business?.id)
+        .gte('created_at', startDate.toISOString())
+        .group('type');
+
+      if (rewardsError) throw rewardsError;
+
+      setRewardDistribution(rewardsData || []);
+
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadReport = () => {
+    // Implementation for downloading analytics report
+    console.log('Downloading report...');
+  };
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
         <p className="text-gray-600 mt-1">
-          Track your loyalty program performance metrics.
+          Track your loyalty program performance metrics
         </p>
       </div>
 
@@ -62,8 +132,6 @@ const AnalyticsPage: React.FC = () => {
               <option value="last7">Last 7 days</option>
               <option value="last30">Last 30 days</option>
               <option value="last90">Last 90 days</option>
-              <option value="lastYear">Last year</option>
-              <option value="custom">Custom range</option>
             </select>
             <ChevronDown size={16} className="text-gray-400 -ml-6" />
           </div>
@@ -72,220 +140,205 @@ const AnalyticsPage: React.FC = () => {
               <Filter size={18} className="mr-2 text-gray-500" />
               <span>Filter</span>
             </button>
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={downloadReport}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            >
               <Download size={18} className="mr-2 text-gray-500" />
               <span>Export</span>
-            </button>
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors">
-              <Share2 size={18} className="mr-2 text-gray-500" />
-              <span>Share</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Key metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
-                {stat.icon}
-              </div>
-              <div className={`flex items-center ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                <span className="text-xs font-medium">{stat.change}</span>
-                <TrendingUp size={14} className="ml-1" />
-              </div>
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <DollarSign size={20} className="text-blue-600" />
             </div>
-            <h3 className="text-gray-500 text-sm font-medium">{stat.name}</h3>
-            <p className="text-gray-900 text-2xl font-bold mt-1">{stat.value}</p>
+            <div className="flex items-center text-green-500">
+              <span className="text-xs font-medium">+12.5%</span>
+              <ArrowUpRight size={14} className="ml-1" />
+            </div>
           </div>
-        ))}
+          <h3 className="text-gray-500 text-sm font-medium">Revenue</h3>
+          <p className="text-gray-900 text-2xl font-bold mt-1">
+            ${(stats.revenue / 100).toFixed(2)}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Users size={20} className="text-purple-600" />
+            </div>
+            <div className="flex items-center text-green-500">
+              <span className="text-xs font-medium">+8.2%</span>
+              <ArrowUpRight size={14} className="ml-1" />
+            </div>
+          </div>
+          <h3 className="text-gray-500 text-sm font-medium">Active Customers</h3>
+          <p className="text-gray-900 text-2xl font-bold mt-1">{stats.activeCustomers}</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <Award size={20} className="text-emerald-600" />
+            </div>
+            <div className="flex items-center text-red-500">
+              <span className="text-xs font-medium">-2.3%</span>
+              <ArrowDownRight size={14} className="ml-1" />
+            </div>
+          </div>
+          <h3 className="text-gray-500 text-sm font-medium">Redemptions</h3>
+          <p className="text-gray-900 text-2xl font-bold mt-1">{stats.redemptions}</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <UserPlus size={20} className="text-amber-600" />
+            </div>
+            <div className="flex items-center text-green-500">
+              <span className="text-xs font-medium">+15.7%</span>
+              <ArrowUpRight size={14} className="ml-1" />
+            </div>
+          </div>
+          <h3 className="text-gray-500 text-sm font-medium">New Customers</h3>
+          <p className="text-gray-900 text-2xl font-bold mt-1">{stats.newCustomers}</p>
+        </div>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Customer Activity Chart */}
+        {/* Revenue Chart */}
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Customer Activity</h2>
-            <select
-              className="border border-gray-300 rounded-md text-sm p-1"
-              defaultValue="daily"
-            >
+            <h2 className="text-lg font-semibold text-gray-900">Revenue Trend</h2>
+            <select className="border border-gray-300 rounded-md text-sm p-1">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
             </select>
           </div>
           
-          <div className="h-64 flex items-end space-x-2">
-            {[35, 45, 30, 25, 40, 50, 60, 45, 50, 55, 65, 70, 60, 65].map((height, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full bg-blue-500 rounded-t"
-                  style={{ height: `${height}%` }}
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyStats}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#3B82F6"
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Reward Distribution */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900">Reward Distribution</h2>
+            <button className="text-sm text-blue-600">View Details</button>
+          </div>
+          
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={rewardDistribution}
+                  dataKey="count"
+                  nameKey="type"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  label
+                >
+                  {rewardDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {rewardDistribution.map((reward, index) => (
+              <div key={reward.type} className="flex items-center">
+                <div 
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 ></div>
-                <div className="text-xs mt-1 text-gray-500">
-                  {i+1}
-                </div>
+                <span className="text-sm text-gray-600">
+                  {reward.type} ({((reward.count / rewardDistribution.reduce((a, b) => a + b.count, 0)) * 100).toFixed(0)}%)
+                </span>
               </div>
             ))}
           </div>
         </div>
-        
-        {/* Rewards Redemption Chart */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Rewards Redemption</h2>
-            <button className="text-sm text-blue-600">
-              View Details
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-center h-64">
-            <div className="relative w-40 h-40">
-              {/* Donut chart simulation */}
-              <div className="absolute inset-0 rounded-full border-8 border-blue-500" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}></div>
-              <div className="absolute inset-0 rounded-full border-8 border-purple-500" style={{ clipPath: 'polygon(50% 50%, 100% 50%, 100% 100%, 50% 100%)' }}></div>
-              <div className="absolute inset-0 rounded-full border-8 border-amber-500" style={{ clipPath: 'polygon(50% 50%, 50% 100%, 0 100%, 0 50%)' }}></div>
-              <div className="absolute inset-0 rounded-full border-8 border-emerald-500" style={{ clipPath: 'polygon(50% 50%, 0 50%, 0 0, 50% 0)' }}></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Clock size={24} className="text-gray-400" />
-              </div>
-            </div>
-            
-            <div className="ml-8">
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Free Coffee (45%)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Discount (25%)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-amber-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Gift Item (20%)</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Other (10%)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Card Performance */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 lg:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Card Performance</h2>
-            <button className="text-sm text-blue-600">
-              View All Cards
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Coffee Rewards */}
-            <div className="border border-gray-100 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                    <CreditCard className="text-blue-600" size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">Coffee Rewards</h3>
-                    <p className="text-sm text-gray-500">56 active customers</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">780 scans</div>
-                  <div className="text-xs text-green-500">+15.4%</div>
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full mt-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-              </div>
-            </div>
-            
-            {/* VIP Member */}
-            <div className="border border-gray-100 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                    <CreditCard className="text-purple-600" size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">VIP Member</h3>
-                    <p className="text-sm text-gray-500">32 active customers</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">345 scans</div>
-                  <div className="text-xs text-green-500">+8.2%</div>
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full mt-2">
-                <div className="bg-purple-500 h-2 rounded-full" style={{ width: '45%' }}></div>
-              </div>
-            </div>
-            
-            {/* Lunch Special */}
-            <div className="border border-gray-100 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-3">
-                    <CreditCard className="text-amber-600" size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">Lunch Special</h3>
-                    <p className="text-sm text-gray-500">18 active customers</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">128 scans</div>
-                  <div className="text-xs text-green-500">+5.7%</div>
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 h-2 rounded-full mt-2">
-                <div className="bg-amber-500 h-2 rounded-full" style={{ width: '25%' }}></div>
-              </div>
-            </div>
-          </div>
+      {/* Customer Segments */}
+      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-gray-900">Customer Segments</h2>
+          <button className="text-sm text-blue-600">Manage Segments</button>
         </div>
 
-        {/* Customer Retention */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Customer Retention</h2>
-            <button className="text-sm text-blue-600">
-              Details
-            </button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Target size={16} className="text-blue-600 mr-2" />
+                <h3 className="font-medium">VIP Customers</h3>
+              </div>
+              <span className="text-sm text-gray-500">32%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '32%' }}></div>
+            </div>
           </div>
-          
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full border-8 border-blue-100">
-              <div className="text-3xl font-bold text-blue-600">86%</div>
+
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Target size={16} className="text-purple-600 mr-2" />
+                <h3 className="font-medium">Regular Customers</h3>
+              </div>
+              <span className="text-sm text-gray-500">45%</span>
             </div>
-            <p className="text-sm text-gray-500 mt-2">30-day retention rate</p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-purple-600 h-2 rounded-full" style={{ width: '45%' }}></div>
+            </div>
           </div>
-          
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">New customers</div>
-              <div className="font-medium">24</div>
+
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Target size={16} className="text-emerald-600 mr-2" />
+                <h3 className="font-medium">New Customers</h3>
+              </div>
+              <span className="text-sm text-gray-500">23%</span>
             </div>
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">Returning customers</div>
-              <div className="font-medium">98</div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">Inactive customers</div>
-              <div className="font-medium">12</div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '23%' }}></div>
             </div>
           </div>
         </div>
