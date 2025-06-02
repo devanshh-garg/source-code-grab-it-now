@@ -15,6 +15,21 @@ const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
 
+  const validatePassword = (password: string) => {
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasNumbers = /[0-9]/.test(password);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?/`~]/.test(password);
+    
+    if (!hasLowerCase) return 'Password must contain at least one lowercase letter';
+    if (!hasUpperCase) return 'Password must contain at least one uppercase letter';
+    if (!hasNumbers) return 'Password must contain at least one number';
+    if (!hasSpecialChars) return 'Password must contain at least one special character';
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -30,8 +45,9 @@ const SignupPage: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -151,20 +167,32 @@ const SignupPage: React.FC = () => {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
+                <div className="mt-1">
+                  <p className="text-xs text-gray-500 mb-2">
+                    Password must contain at least:
+                    <ul className="list-disc list-inside mt-1">
+                      <li>One lowercase letter</li>
+                      <li>One uppercase letter</li>
+                      <li>One number</li>
+                      <li>One special character (!@#$%^&*()_+-=[]{};\':"|,.<>?/`~)</li>
+                      <li>6 characters minimum</li>
+                    </ul>
+                  </p>
+                  <div className="relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
                   </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
                 </div>
               </div>
 
