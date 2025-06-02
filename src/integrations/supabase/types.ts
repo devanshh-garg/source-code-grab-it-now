@@ -96,54 +96,6 @@ export type Database = {
           },
         ]
       }
-      customer_loyalty_cards: {
-        Row: {
-          customer_profile_id: string
-          id: string
-          joined_at: string
-          last_activity: string
-          loyalty_card_id: string
-          points: number
-          stamps: number
-          tier: string | null
-        }
-        Insert: {
-          customer_profile_id: string
-          id?: string
-          joined_at?: string
-          last_activity?: string
-          loyalty_card_id: string
-          points?: number
-          stamps?: number
-          tier?: string | null
-        }
-        Update: {
-          customer_profile_id?: string
-          id?: string
-          joined_at?: string
-          last_activity?: string
-          loyalty_card_id?: string
-          points?: number
-          stamps?: number
-          tier?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customer_loyalty_cards_customer_profile_id_fkey"
-            columns: ["customer_profile_id"]
-            isOneToOne: false
-            referencedRelation: "customer_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "customer_loyalty_cards_loyalty_card_id_fkey"
-            columns: ["loyalty_card_id"]
-            isOneToOne: false
-            referencedRelation: "loyalty_cards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       customer_oxxkvd_cards: {
         Row: {
           business_id: string
@@ -209,36 +161,6 @@ export type Database = {
           name?: string
           phone?: string | null
           user_email?: string
-        }
-        Relationships: []
-      }
-      customer_profiles: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          name: string
-          phone: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          name: string
-          phone?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          name?: string
-          phone?: string | null
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
