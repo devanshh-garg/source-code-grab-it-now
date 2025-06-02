@@ -86,13 +86,12 @@ const AnalyticsPage: React.FC = () => {
 
       setStats(totals);
 
-      // Fetch reward distribution
+      // Fetch reward distribution - Fixed query to use correct aggregation syntax
       const { data: rewardsData, error: rewardsError } = await supabase
         .from('transactions')
-        .select('type, count')
+        .select('type, count(*)')
         .eq('business_id', business?.id)
-        .gte('created_at', startDate.toISOString())
-        .group('type');
+        .gte('created_at', startDate.toISOString());
 
       if (rewardsError) throw rewardsError;
 
