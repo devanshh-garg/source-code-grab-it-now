@@ -62,6 +62,12 @@ const PublicCardPage: React.FC = () => {
     }
   };
 
+  const handleGetQrCode = () => {
+    console.log('Get QR Code clicked');
+    console.log('showQr state:', showQr);
+    setShowQr(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -88,6 +94,8 @@ const PublicCardPage: React.FC = () => {
     }
     return 'from-blue-500 to-blue-600';
   };
+
+  console.log('showQr state:', showQr);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -163,11 +171,10 @@ const PublicCardPage: React.FC = () => {
             <button
               className="px-4 py-2 bg-gray-100 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors mb-2"
               style={{ border: '2px solid red', zIndex: 1000, position: 'relative' }}
-              onClick={() => { console.log('Get QR Code clicked'); console.log('showQr state:', showQr); setShowQr(true); }}
+              onClick={handleGetQrCode}
             >
               Get QR Code
             </button>
-            {console.log('showQr state:', showQr)}
             {showQr && (
               <div className="flex flex-col items-center mt-2">
                 <div className="flex flex-row gap-8">

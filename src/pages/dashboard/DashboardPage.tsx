@@ -5,7 +5,6 @@ import {
   CreditCard, Users, BarChart3, 
   ArrowUpRight, Plus, QrCode
 } from 'lucide-react';
-import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBusinessData } from '../../hooks/useBusinessData';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
@@ -55,13 +54,6 @@ const DashboardPage: React.FC = () => {
     },
   ];
 
-  const getCardColorClass = (backgroundColor?: string) => {
-    if (backgroundColor) {
-      return `bg-[${backgroundColor}]`;
-    }
-    return 'from-blue-500 to-blue-600';
-  };
-
   // Helper to determine readable text color
   function getCardTextColor(card: any) {
     // 1. Use explicit text color if present
@@ -83,6 +75,8 @@ const DashboardPage: React.FC = () => {
     // 3. Fallback
     return '#fff';
   }
+
+  console.log('DashboardPage cards:', cards);
 
   return (
     <div>
@@ -174,76 +168,75 @@ const DashboardPage: React.FC = () => {
           
           {cards.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {console.log('DashboardPage cards:', cards)}
-{cards.slice(0, 3).map((card) => {
-  // Defensive: check for required fields, fallback if missing
-  const hasCriticalFields = card && card.name && card.type && card.design && card.rules;
-  if (!hasCriticalFields) {
-    return (
-      <div key={card.id || Math.random()} className="bg-gray-100 rounded-lg p-4 text-gray-500 border border-red-200">
-        <div className="mb-2 font-bold">Card data incomplete</div>
-        <div className="text-xs">Some fields missing. Please recreate or edit this card.</div>
-        <pre className="text-xs mt-2 overflow-x-auto">{JSON.stringify(card, null, 2)}</pre>
-      </div>
-    );
-  }
-  return (
-    <div key={card.id}
-      className="rounded-lg p-4 shadow-lg"
-      style={{
-        background: card.design?.backgroundColor
-          ? `linear-gradient(135deg, ${card.design.backgroundColor}, ${card.design.backgroundColor}CC)`
-          : 'linear-gradient(135deg, #3B82F6, #2563EB)',
-        color: getCardTextColor(card)
-      }}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-            <CreditCard className="text-blue-600" size={16} />
-          </div>
-          <span className="font-bold">{card.name || 'Untitled Card'}</span>
-        </div>
-        <div className="text-xs bg-white bg-opacity-20 py-1 px-2 rounded-full">
-          {card.active ? 'Active' : 'Draft'}
-        </div>
-      </div>
-      {card.type === 'stamp' && (
-        <div className="space-y-2 mb-4">
-          <div className="grid grid-cols-5 gap-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
-                <CreditCard className="text-white" size={14} />
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
-                <CreditCard className="text-white" size={14} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {card.type === 'points' && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-white text-opacity-80">Progress to reward</span>
-            <span className="text-xs font-medium">0%</span>
-          </div>
-          <div className="w-full bg-white bg-opacity-20 h-2 rounded-full">
-            <div className="bg-white h-2 rounded-full" style={{ width: '0%' }}></div>
-          </div>
-        </div>
-      )}
-      <div className="text-center py-1 bg-white bg-opacity-20 rounded-md text-sm font-medium">
-        {(card.rules?.rewardTitle && card.rules.rewardTitle.length > 0) ? card.rules.rewardTitle : 'Reward not set'}
-      </div>
+              {cards.slice(0, 3).map((card) => {
+                // Defensive: check for required fields, fallback if missing
+                const hasCriticalFields = card && card.name && card.type && card.design && card.rules;
+                if (!hasCriticalFields) {
+                  return (
+                    <div key={card.id || Math.random()} className="bg-gray-100 rounded-lg p-4 text-gray-500 border border-red-200">
+                      <div className="mb-2 font-bold">Card data incomplete</div>
+                      <div className="text-xs">Some fields missing. Please recreate or edit this card.</div>
+                      <pre className="text-xs mt-2 overflow-x-auto">{JSON.stringify(card, null, 2)}</pre>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={card.id}
+                    className="rounded-lg p-4 shadow-lg"
+                    style={{
+                      background: card.design?.backgroundColor
+                        ? `linear-gradient(135deg, ${card.design.backgroundColor}, ${card.design.backgroundColor}CC)`
+                        : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                      color: getCardTextColor(card)
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                          <CreditCard className="text-blue-600" size={16} />
+                        </div>
+                        <span className="font-bold">{card.name || 'Untitled Card'}</span>
+                      </div>
+                      <div className="text-xs bg-white bg-opacity-20 py-1 px-2 rounded-full">
+                        {card.active ? 'Active' : 'Draft'}
+                      </div>
+                    </div>
+                    {card.type === 'stamp' && (
+                      <div className="space-y-2 mb-4">
+                        <div className="grid grid-cols-5 gap-2">
+                          {[...Array(5)].map((_, i) => (
+                            <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
+                              <CreditCard className="text-white" size={14} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-5 gap-2">
+                          {[...Array(5)].map((_, i) => (
+                            <div key={i} className="w-full aspect-square bg-white bg-opacity-20 rounded-md flex items-center justify-center">
+                              <CreditCard className="text-white" size={14} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {card.type === 'points' && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-white text-opacity-80">Progress to reward</span>
+                          <span className="text-xs font-medium">0%</span>
+                        </div>
+                        <div className="w-full bg-white bg-opacity-20 h-2 rounded-full">
+                          <div className="bg-white h-2 rounded-full" style={{ width: '0%' }}></div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-center py-1 bg-white bg-opacity-20 rounded-md text-sm font-medium">
+                      {(card.rules?.rewardTitle && card.rules.rewardTitle.length > 0) ? card.rules.rewardTitle : 'Reward not set'}
+                    </div>
 
-    </div>
-  );
-})}
+                  </div>
+                );
+              })}
               {cards.length < 4 && (
                 <Link 
                   to="/cards/create"
