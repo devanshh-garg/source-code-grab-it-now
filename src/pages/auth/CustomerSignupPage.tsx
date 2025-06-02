@@ -1,0 +1,282 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CreditCard, User, Mail, Lock, Smartphone, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../integrations/supabase/client';
+
+const CustomerSignupPage: React.FC = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { signup } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!name || !email || !password || !confirmPassword) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Sign up the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Create customer profile
+        const { error: profileError } = await supabase
+          .from('customer_profiles')
+          .insert({
+            user_id: authData.user.id,
+            name,
+            email,
+            phone: phone || null,
+          });
+
+        if (profileError) throw profileError;
+      }
+
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setError(err.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="text-center">
+          <Link to="/" className="inline-flex items-center space-x-2">
+            <CreditCard className="text-blue-600" size={28} />
+            <span className="text-2xl font-bold text-gray-900">LoyaltyCard</span>
+          </Link>
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            Create your account
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link to="/customer/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </Link>
+          </p>
+        </div>
+
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            {error && (
+              <div className="mb-4 bg-red-50 p-4 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  Phone Number (Optional)
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Smartphone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirm Password
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  id="terms"
+                  name="terms"
+                  type="checkbox"
+                  required
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
+                  I agree to the{' '}
+                  <a href="#" className="text-blue-600 hover:text-blue-500">
+                    Terms of Service
+                  </a>{' '}
+                  and{' '}
+                  <a href="#" className="text-blue-600 hover:text-blue-500">
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {loading ? 'Creating account...' : 'Create account'}
+                </button>
+              </div>
+            </form>
+
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+                    if (error) console.error('Google sign-in error:', error);
+                  }}
+                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.545 10.239v3.821h5.445c-0.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866 0.549 3.921 1.453l2.814-2.814c-1.79-1.677-4.184-2.702-6.735-2.702-5.514 0-10 4.486-10 10s4.486 10 10 10c8.435 0 10.063-7.502 9.232-13.202l-9.232 1.535z" />
+                  </svg>
+                  <span className="ml-2">Continue with Google</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CustomerSignupPage;
