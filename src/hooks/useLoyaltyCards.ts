@@ -51,6 +51,11 @@ export const useLoyaltyCards = () => {
         return;
       }
 
+      console.log('Supabase loyalty_cards raw data:', data);
+      if (!data || (Array.isArray(data) && (data.length === 0 || (data.length === 1 && Object.keys(data[0]).length === 0)))) {
+        console.warn('No valid loyalty card data returned from Supabase. Check your database and RLS policies.');
+      }
+
       // Transform the data to match our interface
       const transformedCards: LoyaltyCard[] = (data || []).map(card => ({
         id: card.id,

@@ -121,15 +121,15 @@ const CreateCardPage: React.FC = () => {
   };
 
   const handleCreateCard = async () => {
-    if (!cardData.name.trim() || !cardData.type || !cardData.businessName.trim()) {
-      alert('Please fill in all required fields');
+    if (!cardData.name.trim() || !cardData.type || !cardData.businessName.trim() || !cardData.reward.trim() || !cardData.customColors.primary) {
+      alert('Please fill in all required fields, including Card Name, Type, Business Name, Reward Title, and Card Color.');
       return;
     }
 
     try {
       setLoading(true);
       
-      await createCard({
+      const cardToCreate = {
         name: cardData.name.trim(),
         type: cardData.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
         design: {
@@ -141,7 +141,9 @@ const CreateCardPage: React.FC = () => {
           totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
         },
         active: true,
-      });
+      };
+      console.log('Creating loyalty card with data:', cardToCreate);
+      await createCard(cardToCreate);
 
       navigate('/cards');
     } catch (error) {

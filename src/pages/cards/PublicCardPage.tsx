@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { useParams } from 'react-router-dom';
 import { CreditCard, Download, Smartphone } from 'lucide-react';
 import { supabase } from '../../integrations/supabase/client';
@@ -7,6 +8,7 @@ import { useWalletPasses } from '../../hooks/useWalletPasses';
 import type { LoyaltyCard } from '../../hooks/useLoyaltyCards';
 
 const PublicCardPage: React.FC = () => {
+  const [showQr, setShowQr] = useState(false);
   const { cardId } = useParams<{ cardId: string }>();
   const [card, setCard] = useState<LoyaltyCard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,6 +158,46 @@ const PublicCardPage: React.FC = () => {
               <Download size={18} className="mr-2" />
               Add to Google Wallet
             </button>
+          </div>
+          <div className="mt-6 flex flex-col items-center">
+            <button
+              className="px-4 py-2 bg-gray-100 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors mb-2"
+              style={{ border: '2px solid red', zIndex: 1000, position: 'relative' }}
+              onClick={() => { console.log('Get QR Code clicked'); console.log('showQr state:', showQr); setShowQr(true); }}
+            >
+              Get QR Code
+            </button>
+            {console.log('showQr state:', showQr)}
+            {showQr && (
+              <div className="flex flex-col items-center mt-2">
+                <div className="flex flex-row gap-8">
+                  <div className="flex flex-col items-center">
+                    <QRCodeCanvas
+                      value={`${window.location.origin}/api/wallet/apple/${card.id}`}
+                      size={128}
+                      level="H"
+                      includeMargin={true}
+                    />
+                    <span className="text-xs mt-2 text-gray-500">Apple Wallet</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <QRCodeCanvas
+                      value={`${window.location.origin}/api/wallet/google/${card.id}`}
+                      size={128}
+                      level="H"
+                      includeMargin={true}
+                    />
+                    <span className="text-xs mt-2 text-gray-500">Google Wallet</span>
+                  </div>
+                </div>
+                <button
+                  className="mt-4 text-xs text-blue-600 hover:underline"
+                  onClick={() => setShowQr(false)}
+                >
+                  Hide QR Codes
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
