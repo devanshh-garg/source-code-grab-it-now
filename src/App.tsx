@@ -15,6 +15,7 @@ import PublicCardPage from './pages/cards/PublicCardPage';
 import CustomersPage from './pages/customers/CustomersPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import ScannerPage from './pages/scanner/ScannerPage';
+import BusinessSettingsPage from './pages/settings/BusinessSettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
@@ -64,6 +65,13 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <AnalyticsPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Layout>
+                <BusinessSettingsPage />
               </Layout>
             </ProtectedRoute>
           } />
