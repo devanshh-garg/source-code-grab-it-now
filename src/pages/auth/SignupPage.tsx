@@ -168,16 +168,16 @@ const SignupPage: React.FC = () => {
                   Password
                 </label>
                 <div className="mt-1">
-                  <p className="text-xs text-gray-500 mb-2">
+                  <div className="text-xs text-gray-500 mb-2">
                     Password must contain at least:
-                    <ul className="list-disc list-inside mt-1">
-                      <li>One lowercase letter</li>
-                      <li>One uppercase letter</li>
-                      <li>One number</li>
-                      <li>One special character (!@#$%^&*()_+-=[]{};\':"|,.<>?/`~)</li>
-                      <li>6 characters minimum</li>
-                    </ul>
-                  </p>
+                  </div>
+                  <ul className="text-xs text-gray-500 mb-2 list-disc pl-4">
+                    <li>One lowercase letter</li>
+                    <li>One uppercase letter</li>
+                    <li>One number</li>
+                    <li>One special character (!@#$%^&*()_+-=[]{};&apos;:&quot;|\,.<>?/`~)</li>
+                    <li>6 characters minimum</li>
+                  </ul>
                   <div className="relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Lock className="h-5 w-5 text-gray-400" />
@@ -276,7 +276,6 @@ const SignupPage: React.FC = () => {
                     }}
                     className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                   >
-                    <span className="sr-only">Sign up with Google</span>
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12.545 10.239v3.821h5.445c-0.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866 0.549 3.921 1.453l2.814-2.814c-1.79-1.677-4.184-2.702-6.735-2.702-5.514 0-10 4.486-10 10s4.486 10 10 10c8.435 0 10.063-7.502 9.232-13.202l-9.232 1.535z" />
                     </svg>
