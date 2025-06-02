@@ -175,7 +175,7 @@ const SignupPage: React.FC = () => {
                     <li>One lowercase letter</li>
                     <li>One uppercase letter</li>
                     <li>One number</li>
-                    <li>One special character (!@#$%^&*()_+-=[]{}';:"|,.<>?/`~)</li>
+                    <li>One special character (!@#$%^&*()_+-=[]{}|;:&quot;,.&lt;&gt;?/`~)</li>
                     <li>6 characters minimum</li>
                   </ul>
                   <div className="relative rounded-md shadow-sm">
