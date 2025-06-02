@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
@@ -8,7 +7,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, businessName: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, businessName?: string, userType?: string, phone?: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
@@ -71,18 +70,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (email: string, password: string, name: string, businessName: string) => {
+  const signup = async (email: string, password: string, name: string, businessName: string = '', userType: string = 'business', phone: string = '') => {
     setLoading(true);
     try {
+      const metadata: any = {
+        full_name: name,
+        user_type: userType,
+      };
+
+      if (userType === 'business') {
+        metadata.business_name = businessName;
+      }
+
+      if (phone) {
+        metadata.phone = phone;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: {
-            full_name: name,
-            business_name: businessName,
-          }
+          emailRedirectTo: userType === 'customer' 
+            ? `${window.location.origin}/customer-dashboard`
+            : `${window.location.origin}/dashboard`,
+          data: metadata
         }
       });
       
