@@ -1,12 +1,11 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { useToast } from '../../../components/ui/use-toast';
-import { Button } from '../../../components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
+import { Button } from '../../components/ui/button';
 import {
   Form,
   FormControl,
@@ -14,9 +13,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../../../components/ui/form';
-import { Input } from '../../../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+} from '../../components/ui/form';
+import { Input } from '../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { useBusinessData } from '../../hooks/useBusinessData';
 
 const businessSettingsSchema = z.object({
@@ -91,7 +90,7 @@ const BusinessSettingsPage: React.FC = () => {
               <FormField
                 control={form.control}
                 name="name"
-                render={({ field }: { field: any }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Business Name</FormLabel>
                     <FormControl>
@@ -105,7 +104,7 @@ const BusinessSettingsPage: React.FC = () => {
               <FormField
                 control={form.control}
                 name="email"
-                render={({ field }: { field: any }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
@@ -119,7 +118,7 @@ const BusinessSettingsPage: React.FC = () => {
               <FormField
                 control={form.control}
                 name="phone"
-                render={({ field }: { field: any }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
@@ -133,7 +132,7 @@ const BusinessSettingsPage: React.FC = () => {
               <FormField
                 control={form.control}
                 name="address"
-                render={({ field }: { field: any }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Address</FormLabel>
                     <FormControl>
@@ -147,7 +146,7 @@ const BusinessSettingsPage: React.FC = () => {
               <FormField
                 control={form.control}
                 name="website"
-                render={({ field }: { field: any }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Website</FormLabel>
                     <FormControl>
@@ -161,7 +160,7 @@ const BusinessSettingsPage: React.FC = () => {
               <FormField
                 control={form.control}
                 name="description"
-                render={({ field }: { field: any }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
