@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Building2, MapPin, Clock, Palette, Globe, 
-  Mail, Phone, Check, AlertCircle, Upload
+  Building2, Globe, 
+  Mail, Phone, Check, AlertCircle
 } from 'lucide-react';
 import { useBusinessData } from '../../hooks/useBusinessData';
 import { supabase } from '../../integrations/supabase/client';
@@ -60,6 +61,12 @@ const BusinessSettingsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!business?.id) {
+      setError('Business not found');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess('');
@@ -68,7 +75,7 @@ const BusinessSettingsPage: React.FC = () => {
       const { error: updateError } = await supabase
         .from('businesses')
         .update(formData)
-        .eq('id', business?.id);
+        .eq('id', business.id);
 
       if (updateError) throw updateError;
 

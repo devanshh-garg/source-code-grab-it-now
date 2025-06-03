@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +11,20 @@ export interface Business {
   address?: string | null;
   logo_url?: string | null;
   settings?: any;
+  description?: string | null;
+  website?: string | null;
+  business_type?: string | null;
+  social_links?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  } | null;
+  theme_settings?: {
+    primary_color?: string;
+    secondary_color?: string;
+    font_family?: string;
+    logo_position?: string;
+  } | null;
 }
 
 export const useBusinessData = () => {

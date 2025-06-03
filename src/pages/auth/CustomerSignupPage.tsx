@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CreditCard, User, Mail, Lock, Smartphone, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../integrations/supabase/client';
 
 const CustomerSignupPage: React.FC = () => {
@@ -13,7 +12,6 @@ const CustomerSignupPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

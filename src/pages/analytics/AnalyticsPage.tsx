@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart3, TrendingUp, Users, CreditCard, 
-  Calendar, ChevronDown, Download, Filter,
-  Share2, Clock, ArrowUpRight, ArrowDownRight,
+  Users, Calendar, ChevronDown, Download, Filter,
+  ArrowUpRight, ArrowDownRight,
   DollarSign, Target, UserPlus, Award
 } from 'lucide-react';
 import {
@@ -18,7 +18,6 @@ const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
 const AnalyticsPage: React.FC = () => {
   const { business } = useBusinessData();
   const [dateRange, setDateRange] = useState('last30');
-  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>({
     totalVisits: 0,
     totalPoints: 0,
@@ -37,9 +36,11 @@ const AnalyticsPage: React.FC = () => {
   }, [business, dateRange]);
 
   const fetchAnalytics = async () => {
-    try {
-      setLoading(true);
+    if (!business?.id) {
+      return;
+    }
 
+    try {
       // Calculate date range
       const endDate = endOfDay(new Date());
       const startDate = startOfDay(
@@ -50,7 +51,7 @@ const AnalyticsPage: React.FC = () => {
       const { data: statsData, error: statsError } = await supabase
         .from('analytics_daily_stats')
         .select('*')
-        .eq('business_id', business?.id)
+        .eq('business_id', business.id)
         .gte('date', startDate.toISOString())
         .lte('date', endDate.toISOString())
         .order('date', { ascending: true });
@@ -60,21 +61,21 @@ const AnalyticsPage: React.FC = () => {
       // Process daily stats
       const processedStats = statsData?.map(day => ({
         date: format(new Date(day.date), 'MMM dd'),
-        visits: day.total_visits,
-        points: day.total_points_earned,
-        revenue: day.revenue_cents / 100
+        visits: day.total_visits || 0,
+        points: day.total_points_earned || 0,
+        revenue: (day.revenue_cents || 0) / 100
       })) || [];
 
       setDailyStats(processedStats);
 
       // Calculate totals
       const totals = statsData?.reduce((acc, curr) => ({
-        totalVisits: acc.totalVisits + curr.total_visits,
-        totalPoints: acc.totalPoints + curr.total_points_earned,
-        activeCustomers: acc.activeCustomers + curr.active_customers,
-        redemptions: acc.redemptions + curr.total_points_redeemed,
-        revenue: acc.revenue + curr.revenue_cents,
-        newCustomers: acc.newCustomers + curr.new_customers
+        totalVisits: acc.totalVisits + (curr.total_visits || 0),
+        totalPoints: acc.totalPoints + (curr.total_points_earned || 0),
+        activeCustomers: acc.activeCustomers + (curr.active_customers || 0),
+        redemptions: acc.redemptions + (curr.total_points_redeemed || 0),
+        revenue: acc.revenue + (curr.revenue_cents || 0),
+        newCustomers: acc.newCustomers + (curr.new_customers || 0)
       }), {
         totalVisits: 0,
         totalPoints: 0,
@@ -104,7 +105,7 @@ const AnalyticsPage: React.FC = () => {
 
       // Filter transactions for current business and aggregate by type
       const businessTransactions = transactionsData
-        ?.filter(tx => tx.customer_card?.card?.business_id === business?.id) || [];
+        ?.filter(tx => tx.customer_card?.card?.business_id === business.id) || [];
 
       const distribution = businessTransactions.reduce((acc: any[], transaction) => {
         const existingType = acc.find(item => item.type === transaction.type);
@@ -120,8 +121,6 @@ const AnalyticsPage: React.FC = () => {
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -290,7 +289,7 @@ const AnalyticsPage: React.FC = () => {
                   fill="#8884d8"
                   label
                 >
-                  {rewardDistribution.map((entry, index) => (
+                  {rewardDistribution.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
