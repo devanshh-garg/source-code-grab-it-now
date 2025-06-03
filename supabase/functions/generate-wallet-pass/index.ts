@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { PKPass } from "npm:passkit-generator@3.1.11"
+import * as jose from "npm:jose@4.14.4"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,9 +33,8 @@ serve(async (req) => {
         throw new Error('Apple Wallet certificates not configured');
       }
 
-      // Create pass instance
+      // Create pass instance with direct content instead of model file
       const pass = new PKPass({
-        model: './models/loyalty',
         certificates: {
           wwdr,
           signerCert: certP12,
@@ -100,7 +100,7 @@ serve(async (req) => {
         }
       });
     } else if (passType === 'google') {
-      // Existing Google Wallet logic
+      // Google Wallet logic
       const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
       if (!serviceAccountJson) {
         throw new Error("Google service account not configured");
@@ -139,7 +139,11 @@ serve(async (req) => {
         }
       };
 
-      const jwt = jose.sign(payload, serviceAccount.private_key, { algorithm: "RS256" });
+      // Create a new SignJWT instance
+      const privateKey = await jose.importPKCS8(serviceAccount.private_key, 'RS256');
+      const jwt = await new jose.SignJWT(payload)
+        .setProtectedHeader({ alg: 'RS256' })
+        .sign(privateKey);
       
       return new Response(JSON.stringify({ jwt }), {
         status: 200,
