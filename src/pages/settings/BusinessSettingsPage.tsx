@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -68,7 +69,6 @@ const BusinessSettingsPage: React.FC = () => {
       toast({
         title: 'Error',
         description: 'Failed to update business settings. Please try again.',
-        variant: 'destructive',
       });
     }
   };
