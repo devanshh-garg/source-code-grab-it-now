@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import type { LoyaltyCard } from './useLoyaltyCards';
@@ -43,18 +42,14 @@ export const useWalletPasses = () => {
         throw new Error(error.message || 'Failed to generate wallet pass');
       }
 
+      // Handle unsupported feature response
+      if (data?.error && data.type === 'unsupported_feature') {
+        throw new Error(data.error);
+      }
+
       if (passType === 'apple') {
-        // Apple Wallet logic - download file
-        if (data) {
-          const blob = new Blob([data], { type: 'application/vnd.apple.pkpass' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${card.name}.pkpass`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-        return data;
+        // Apple Wallet logic - currently unsupported
+        throw new Error('Apple Wallet pass generation is temporarily unavailable. Please try Google Wallet instead.');
       } else {
         // Google Wallet logic - open URL
         if (!data || !data.jwt) {
@@ -79,7 +74,7 @@ export const useWalletPasses = () => {
         } else if (error.message.includes('JWT generation failed')) {
           errorMessage = 'Error creating wallet pass. Please try again.';
         } else {
-          errorMessage += `: ${error.message}`;
+          errorMessage = error.message;
         }
       }
       

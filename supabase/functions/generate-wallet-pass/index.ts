@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { PKPass } from "npm:passkit-generator@3.1.11"
-import * as jose from "npm:jose@4.14.4"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as jose from "npm:jose@4.14.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,79 +23,16 @@ serve(async (req) => {
     }
 
     if (passType === 'apple') {
-      // Get Apple Wallet certificates from environment variables
-      const certP12 = Deno.env.get("APPLE_PASS_P12");
-      const certPassword = Deno.env.get("APPLE_PASS_PASSWORD");
-      const wwdr = Deno.env.get("APPLE_WWDR_PEM");
-      
-      if (!certP12 || !certPassword || !wwdr) {
-        throw new Error('Apple Wallet certificates not configured');
-      }
-
-      // Create pass instance with direct content instead of model file
-      const pass = new PKPass({
-        certificates: {
-          wwdr,
-          signerCert: certP12,
-          signerKey: certP12,
-          signerKeyPassphrase: certPassword
-        }
-      });
-
-      // Set pass data
-      pass.setBarcodes({
-        message: `loyalty:${passData.cardId}`,
-        format: 'PKBarcodeFormatQR',
-        messageEncoding: 'iso-8859-1'
-      });
-
-      // Set pass content
-      const passContent = {
-        formatVersion: 1,
-        passTypeIdentifier: 'pass.com.yourbusiness.loyalty',
-        serialNumber: passData.cardId,
-        teamIdentifier: Deno.env.get("APPLE_TEAM_ID"),
-        organizationName: passData.businessName,
-        description: 'Loyalty Card',
-        logoText: passData.businessName,
-        foregroundColor: 'rgb(255, 255, 255)',
-        backgroundColor: passData.backgroundColor || '#3B82F6',
-        storeCard: {
-          primaryFields: [
-            {
-              key: 'balance',
-              label: 'Current Points',
-              value: 0
-            }
-          ],
-          secondaryFields: [
-            {
-              key: 'tier',
-              label: 'Member Level',
-              value: 'Standard'
-            }
-          ],
-          backFields: [
-            {
-              key: 'terms',
-              label: 'Terms and Conditions',
-              value: passData.rewardTitle || 'Loyalty Rewards Program'
-            }
-          ]
-        }
-      };
-
-      pass.loadBuffer(Buffer.from(JSON.stringify(passContent)));
-
-      // Generate pass file
-      const passBuffer = await pass.generate();
-
-      return new Response(passBuffer, {
-        status: 200,
+      // For Apple Wallet, return a URL to a separate service that handles pass generation
+      // This is a temporary solution until we implement a proper pass generation service
+      return new Response(JSON.stringify({
+        error: "Apple Wallet pass generation is temporarily unavailable. Please try Google Wallet instead.",
+        type: "unsupported_feature"
+      }), {
+        status: 503,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/vnd.apple.pkpass',
-          'Content-Disposition': `attachment; filename="${passData.cardName}.pkpass"`
+          'Content-Type': 'application/json'
         }
       });
     } else if (passType === 'google') {
