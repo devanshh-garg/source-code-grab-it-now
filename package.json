@@ -12,8 +12,11 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
+    "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-label": "^2.0.2",
+    "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/supabase-js": "^2.49.8",
+    "class-variance-authority": "^0.7.1",
     "date-fns": "^3.3.1",
     "framer-motion": "^11.0.8",
     "html5-qrcode": "^2.3.8",
@@ -26,6 +29,7 @@
     "react-hook-form": "^7.50.1",
     "react-router-dom": "^6.22.3",
     "recharts": "^2.12.2",
+    "tailwind-merge": "^3.3.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

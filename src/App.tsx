@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -40,7 +39,7 @@ function App() {
           <Route path="/cards/:id" element={<PublicCardPage />} />
 
           {/* Protected routes */}
-          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/cards" element={<CardsPage />} />
             <Route path="/cards/create" element={<CreateCardPage />} />
