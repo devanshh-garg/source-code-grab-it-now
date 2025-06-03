@@ -59,7 +59,18 @@ export const useBusinessData = () => {
         return;
       }
 
-      setBusiness(data && data.length > 0 ? data[0] : null);
+      if (data && data.length > 0) {
+        const rawBusiness = data[0];
+        // Type-cast the JSON fields to match our Business interface
+        const business: Business = {
+          ...rawBusiness,
+          social_links: rawBusiness.social_links as Business['social_links'],
+          theme_settings: rawBusiness.theme_settings as Business['theme_settings'],
+        };
+        setBusiness(business);
+      } else {
+        setBusiness(null);
+      }
     } catch (error) {
       console.error('Error fetching business:', error);
     } finally {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -44,16 +43,16 @@ const BusinessSettingsPage: React.FC = () => {
         description: business.description || '',
         website: business.website || '',
         business_type: business.business_type || '',
-        social_links: business.social_links || {
-          facebook: '',
-          instagram: '',
-          twitter: '',
+        social_links: {
+          facebook: business.social_links?.facebook || '',
+          instagram: business.social_links?.instagram || '',
+          twitter: business.social_links?.twitter || '',
         },
-        theme_settings: business.theme_settings || {
-          primary_color: '#3B82F6',
-          secondary_color: '#1D4ED8',
-          font_family: 'Inter',
-          logo_position: 'left',
+        theme_settings: {
+          primary_color: business.theme_settings?.primary_color || '#3B82F6',
+          secondary_color: business.theme_settings?.secondary_color || '#1D4ED8',
+          font_family: business.theme_settings?.font_family || 'Inter',
+          logo_position: business.theme_settings?.logo_position || 'left',
         },
       });
     }
