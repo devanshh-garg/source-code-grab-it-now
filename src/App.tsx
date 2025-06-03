@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
@@ -16,6 +17,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import CustomerSignupPage from './pages/auth/CustomerSignupPage';
 import CompleteProfilePage from './pages/CompleteProfilePage';
+import ProfilePage from './pages/profile/ProfilePage';
 import PublicCardPage from './pages/cards/PublicCardPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
@@ -46,6 +48,7 @@ function App() {
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<BusinessSettingsPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
           {/* 404 route */}

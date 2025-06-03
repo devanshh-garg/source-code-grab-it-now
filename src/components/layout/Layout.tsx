@@ -24,6 +24,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setSidebarOpen(false); // Close mobile sidebar if open
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+    setSidebarOpen(false); // Close mobile sidebar if open
+  };
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -61,7 +71,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </button>
           <div className="font-semibold text-lg">LoyaltyCard</div>
           <div className="relative">
-            <button className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
+            <button 
+              onClick={handleProfileClick}
+              className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors"
+            >
               {getUserInitial()}
             </button>
           </div>
@@ -92,6 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     ? 'bg-blue-50 text-blue-600'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
+                onClick={() => setSidebarOpen(false)}
               >
                 {item.icon}
                 <span className="font-medium">{item.label}</span>
@@ -101,9 +115,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           <div className="p-4 border-t">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
+              <button 
+                onClick={handleProfileClick}
+                className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors"
+              >
                 {getUserInitial()}
-              </div>
+              </button>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {getUserDisplayName()}
@@ -116,14 +133,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             
             <div className="space-y-1">
               <button
-                onClick={() => {/* Profile settings */}}
+                onClick={handleProfileClick}
                 className="flex w-full items-center space-x-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100"
               >
                 <User size={16} />
                 <span>Profile</span>
               </button>
               <button
-                onClick={() => {/* Account settings */}}
+                onClick={handleSettingsClick}
                 className="flex w-full items-center space-x-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100"
               >
                 <Settings size={16} />
@@ -146,11 +163,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="hidden lg:block bg-white border-b shadow-sm">
           <div className="flex items-center justify-end p-4">
             <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full hover:bg-gray-100">
+              <button 
+                onClick={handleSettingsClick}
+                className="p-2 rounded-full hover:bg-gray-100"
+              >
                 <Settings size={20} className="text-gray-600" />
               </button>
               <div className="relative">
-                <button className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                <button 
+                  onClick={handleProfileClick}
+                  className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors"
+                >
                   {getUserInitial()}
                 </button>
               </div>
