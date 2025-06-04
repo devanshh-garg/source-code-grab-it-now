@@ -41,6 +41,36 @@ export const useBusinessData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const createDefaultBusiness = async () => {
+    if (!currentUser) return null;
+
+    try {
+      console.log('Creating default business for user:', currentUser.id);
+      const { data, error } = await supabase
+        .from('businesses')
+        .insert({
+          user_id: currentUser.id,
+          name: 'My Business',
+          email: currentUser.email || '',
+          business_type: 'retail',
+          description: 'Default business profile'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating default business:', error);
+        throw error;
+      }
+
+      console.log('Default business created:', data);
+      return data;
+    } catch (err) {
+      console.error('Failed to create default business:', err);
+      throw err;
+    }
+  };
+
   const fetchBusinessData = async () => {
     if (!currentUser) {
       console.log('No authenticated user, cannot fetch business data');
@@ -55,32 +85,37 @@ export const useBusinessData = () => {
         .from('businesses')
         .select('*')
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          console.log('No business found for user');
-          setBusiness(null);
-        } else {
-          console.error('Error fetching business:', error);
-          throw error;
-        }
-        return;
+        console.error('Error fetching business:', error);
+        throw error;
+      }
+
+      let businessData = data;
+      
+      // If no business exists, create a default one
+      if (!businessData) {
+        console.log('No business found, creating default business');
+        businessData = await createDefaultBusiness();
       }
       
-      console.log('Business data fetched:', data);
-      
-      // Transform the database row to our Business interface
-      const transformedData: Business = {
-        ...data,
-        owner_id: data.user_id,
-        social_links: data.social_links as Business['social_links'],
-        theme_settings: data.theme_settings as Business['theme_settings'],
-        business_hours: data.business_hours,
-      };
-      
-      setBusiness(transformedData);
+      if (businessData) {
+        console.log('Business data found:', businessData);
+        
+        // Transform the database row to our Business interface
+        const transformedData: Business = {
+          ...businessData,
+          owner_id: businessData.user_id,
+          social_links: businessData.social_links as Business['social_links'],
+          theme_settings: businessData.theme_settings as Business['theme_settings'],
+          business_hours: businessData.business_hours,
+        };
+        
+        setBusiness(transformedData);
+      }
     } catch (err) {
+      console.error('Error in fetchBusinessData:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch business data'));
     } finally {
       setLoading(false);

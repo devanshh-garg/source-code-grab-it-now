@@ -10,6 +10,7 @@ import {
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
 import { supabase } from '../../integrations/supabase/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBusinessData } from '../../hooks/useBusinessData';
 
 // Card type options
 const cardTypes = [
@@ -32,9 +33,11 @@ const colorThemes = [
 const CreateCardPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { business, loading: businessLoading } = useBusinessData();
   const { createCard } = useLoyaltyCards();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [currentStep, setCurrentStep] = useState(1);
   const [cardData, setCardData] = useState({
     name: '',
@@ -64,6 +67,32 @@ const CreateCardPage: React.FC = () => {
       twitter: '',
     },
   });
+
+  // Show loading state while business is being fetched/created
+  if (businessLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Setting up your business profile...</div>
+      </div>
+    );
+  }
+
+  // Show error if no business could be created
+  if (!business) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">Unable to load business profile</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleChange = (field: string, value: any) => {
     setCardData((prev) => {
@@ -114,27 +143,28 @@ const CreateCardPage: React.FC = () => {
       setCardData(prev => ({ ...prev, logoUrl: publicUrl }));
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert('Failed to upload logo. Please try again.');
+      setError('Failed to upload logo. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreateCard = async () => {
-    if (!cardData.name.trim() || !cardData.type || !cardData.businessName.trim() || !cardData.reward.trim() || !cardData.customColors.primary) {
-      alert('Please fill in all required fields, including Card Name, Type, Business Name, Reward Title, and Card Color.');
+    if (!cardData.name.trim() || !cardData.type || !cardData.reward.trim()) {
+      setError('Please fill in all required fields: Card Name, Type, and Reward Title.');
       return;
     }
 
     try {
       setLoading(true);
+      setError('');
       
       const cardToCreate = {
         name: cardData.name.trim(),
         type: cardData.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
         design: {
           backgroundColor: cardData.customColors.primary,
-          logoUrl: cardData.logoUrl,
+          logoUrl: cardData.logoUrl || undefined,
         },
         rules: {
           rewardTitle: cardData.reward.trim(),
@@ -142,13 +172,15 @@ const CreateCardPage: React.FC = () => {
         },
         active: true,
       };
+      
       console.log('Creating loyalty card with data:', cardToCreate);
       await createCard(cardToCreate);
 
       navigate('/cards');
     } catch (error) {
       console.error('Error creating card:', error);
-      alert('Failed to create card. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create card. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -306,7 +338,18 @@ const CreateCardPage: React.FC = () => {
           <p className="text-gray-600 mt-1">
             Design a custom loyalty card for your customers.
           </p>
+          {business && (
+            <p className="text-sm text-green-600 mt-1">
+              ✓ Business profile: {business.name}
+            </p>
+          )}
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
 
         {/* Steps */}
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 mb-6">
@@ -342,7 +385,7 @@ const CreateCardPage: React.FC = () => {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Card Name
+                    Card Name *
                   </label>
                   <input
                     type="text"
@@ -359,16 +402,16 @@ const CreateCardPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={cardData.businessName}
+                    value={cardData.businessName || business?.name || ''}
                     onChange={(e) => handleChange('businessName', e.target.value)}
-                    placeholder="Your business name"
+                    placeholder={business?.name || 'Your business name'}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Card Type
+                    Card Type *
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {cardTypes.map((type) => (

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useBusinessData } from './useBusinessData';
@@ -56,7 +57,7 @@ export const useLoyaltyCards = () => {
 
       if (error) {
         console.error('Error fetching cards:', error);
-        return;
+        throw error;
       }
 
       console.log('Raw loyalty cards data from Supabase:', data);
@@ -94,29 +95,33 @@ export const useLoyaltyCards = () => {
   const createCard = async (cardData: Omit<LoyaltyCard, 'id' | 'created_at'>) => {
     if (!business?.id) {
       console.error('No business ID available for card creation');
-      throw new Error('No business found. Please create a business profile first.');
+      throw new Error('No business found. Please refresh the page and try again.');
     }
 
     try {
       console.log('Creating loyalty card with data:', cardData);
       console.log('Business ID:', business.id);
       
+      const insertData = {
+        business_id: business.id,
+        name: cardData.name,
+        type: cardData.type,
+        design: cardData.design || {},
+        rules: cardData.rules || {},
+        active: cardData.active,
+      };
+
+      console.log('Insert data:', insertData);
+      
       const { data, error } = await supabase
         .from('loyalty_cards')
-        .insert({
-          business_id: business.id,
-          name: cardData.name,
-          type: cardData.type,
-          design: cardData.design,
-          rules: cardData.rules,
-          active: cardData.active,
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating card:', error);
-        throw error;
+        console.error('Supabase error creating card:', error);
+        throw new Error(`Failed to create card: ${error.message}`);
       }
 
       console.log('Card created successfully:', data);
