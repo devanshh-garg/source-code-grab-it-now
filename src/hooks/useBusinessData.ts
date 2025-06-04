@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../lib/database.types';
+import { supabase } from '../integrations/supabase/client';
 
 export interface Business {
   id: string;
@@ -35,7 +34,6 @@ export interface Business {
 }
 
 export const useBusinessData = () => {
-  const supabase = useSupabaseClient<Database>();
   const { currentUser } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,7 +122,7 @@ export const useBusinessData = () => {
 
   useEffect(() => {
     fetchBusinessData();
-  }, [currentUser, supabase]);
+  }, [currentUser]);
 
   const mutate = () => {
     return fetchBusinessData();

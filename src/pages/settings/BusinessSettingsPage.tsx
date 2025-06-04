@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useToast } from '../../components/ui/use-toast';
 import { Button } from '../../components/ui/button';
 import {
@@ -18,6 +16,7 @@ import {
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { useBusinessData } from '../../hooks/useBusinessData';
+import { supabase } from '../../integrations/supabase/client';
 
 const businessSettingsSchema = z.object({
   name: z.string().min(1, 'Business name is required'),
@@ -32,7 +31,6 @@ type BusinessSettingsFormData = z.infer<typeof businessSettingsSchema>;
 
 const BusinessSettingsPage: React.FC = () => {
   const { business, mutate } = useBusinessData();
-  const supabase = useSupabaseClient();
   const { toast } = useToast();
   const navigate = useNavigate();
 
