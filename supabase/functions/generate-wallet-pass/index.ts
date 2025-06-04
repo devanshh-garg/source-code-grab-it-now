@@ -73,7 +73,7 @@ serve(async (req) => {
         linksModuleData: {
           uris: [
             {
-              uri: `https://your-domain.com/cards/${passData.cardId}`,
+              uri: `https://loyaltyworking.netlify.app/cards/${passData.cardId}`,
               description: "View Card Details"
             }
           ]
