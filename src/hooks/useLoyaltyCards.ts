@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useBusinessData } from './useBusinessData';
@@ -20,11 +19,16 @@ export interface LoyaltyCard {
 }
 
 export const useLoyaltyCards = () => {
-  const { business } = useBusinessData();
+  const { business, loading: businessLoading } = useBusinessData();
   const [cards, setCards] = useState<LoyaltyCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Don't fetch if business is still loading
+    if (businessLoading) {
+      return;
+    }
+
     if (business?.id) {
       console.log('Business ID found, fetching cards for business:', business.id);
       fetchCards();
@@ -33,7 +37,7 @@ export const useLoyaltyCards = () => {
       setCards([]);
       setLoading(false);
     }
-  }, [business?.id]);
+  }, [business?.id, businessLoading]);
 
   const fetchCards = async () => {
     if (!business?.id) {
@@ -90,7 +94,7 @@ export const useLoyaltyCards = () => {
   const createCard = async (cardData: Omit<LoyaltyCard, 'id' | 'created_at'>) => {
     if (!business?.id) {
       console.error('No business ID available for card creation');
-      return;
+      throw new Error('No business found. Please create a business profile first.');
     }
 
     try {
@@ -145,5 +149,5 @@ export const useLoyaltyCards = () => {
     }
   };
 
-  return { cards, loading, createCard, deleteCard, refetch: fetchCards };
+  return { cards, loading: loading || businessLoading, createCard, deleteCard, refetch: fetchCards };
 };

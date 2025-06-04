@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../lib/database.types';
 
 export interface Business {
@@ -35,22 +36,44 @@ export interface Business {
 
 export const useBusinessData = () => {
   const supabase = useSupabaseClient<Database>();
+  const { currentUser } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchBusinessData = async () => {
+    if (!currentUser) {
+      console.log('No authenticated user, cannot fetch business data');
+      setBusiness(null);
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log('Fetching business data for user:', currentUser.id);
       const { data, error } = await supabase
         .from('businesses')
         .select('*')
+        .eq('user_id', currentUser.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('No business found for user');
+          setBusiness(null);
+        } else {
+          console.error('Error fetching business:', error);
+          throw error;
+        }
+        return;
+      }
+      
+      console.log('Business data fetched:', data);
       
       // Transform the database row to our Business interface
       const transformedData: Business = {
         ...data,
+        owner_id: data.user_id,
         social_links: data.social_links as Business['social_links'],
         theme_settings: data.theme_settings as Business['theme_settings'],
         business_hours: data.business_hours,
@@ -66,7 +89,7 @@ export const useBusinessData = () => {
 
   useEffect(() => {
     fetchBusinessData();
-  }, [supabase]);
+  }, [currentUser, supabase]);
 
   const mutate = () => {
     return fetchBusinessData();
