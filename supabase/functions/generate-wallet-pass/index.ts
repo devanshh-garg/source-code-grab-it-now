@@ -40,6 +40,10 @@ serve(async (req) => {
       
       const serviceAccount = JSON.parse(serviceAccountJson);
 
+      // Default images from Pexels (valid, publicly accessible URLs)
+      const defaultLogoUrl = "https://images.pexels.com/photos/1162361/pexels-photo-1162361.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+      const defaultHeroUrl = "https://images.pexels.com/photos/3184432/pexels-photo-3184432.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+
       // Create the loyalty class if it doesn't exist
       const loyaltyClass = {
         id: `${serviceAccount.project_id}.${passData.classId || "loyalty_class_1"}`,
@@ -47,10 +51,10 @@ serve(async (req) => {
         programName: passData.cardName,
         programLogo: {
           sourceUri: {
-            uri: passData.logoUrl || "https://example.com/logo.png"
+            uri: passData.logoUrl || defaultLogoUrl
           }
         },
-        reviewStatus: "UNDER_REVIEW",
+        reviewStatus: "APPROVED", // Changed from UNDER_REVIEW to APPROVED
         hexBackgroundColor: passData.backgroundColor || "#3B82F6"
       };
       
@@ -61,7 +65,7 @@ serve(async (req) => {
         state: "ACTIVE",
         heroImage: {
           sourceUri: {
-            uri: passData.logoUrl || "https://example.com/hero.png"
+            uri: passData.logoUrl || defaultHeroUrl
           }
         },
         textModulesData: [
@@ -73,7 +77,7 @@ serve(async (req) => {
         linksModuleData: {
           uris: [
             {
-              uri: `https://loyaltyworking.netlify.app/cards/${passData.cardId}`,
+              uri: `${passData.baseUrl || 'https://loyaltycard.app'}/cards/${passData.cardId}`,
               description: "View Card Details"
             }
           ]
@@ -82,7 +86,7 @@ serve(async (req) => {
           {
             mainImage: {
               sourceUri: {
-                uri: passData.logoUrl || "https://example.com/logo.png"
+                uri: passData.logoUrl || defaultLogoUrl
               }
             }
           }
@@ -91,13 +95,7 @@ serve(async (req) => {
           type: "QR_CODE",
           value: `${passData.cardId}`,
           alternateText: passData.cardId
-        },
-        locations: [
-          {
-            latitude: 0,
-            longitude: 0
-          }
-        ]
+        }
       };
 
       // Create JWT claims
