@@ -23,85 +23,128 @@ serve(async (req) => {
     }
 
     if (passType === 'apple') {
-      // For Apple Wallet, return a URL to a separate service that handles pass generation
-      // This is a temporary solution until we implement a proper pass generation service
       return new Response(JSON.stringify({
         error: "Apple Wallet pass generation is temporarily unavailable. Please try Google Wallet instead.",
         type: "unsupported_feature"
       }), {
         status: 503,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
-    } else if (passType === 'google') {
-      // Google Wallet logic
+    } 
+    
+    if (passType === 'google') {
       const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
       if (!serviceAccountJson) {
         throw new Error("Google service account not configured");
       }
       
       const serviceAccount = JSON.parse(serviceAccountJson);
+
+      // Create the loyalty class if it doesn't exist
+      const loyaltyClass = {
+        id: `${serviceAccount.project_id}.${passData.classId || "loyalty_class_1"}`,
+        issuerName: passData.businessName || "LoyaltyCard",
+        programName: passData.cardName,
+        programLogo: {
+          sourceUri: {
+            uri: passData.logoUrl || "https://example.com/logo.png"
+          }
+        },
+        reviewStatus: "UNDER_REVIEW",
+        hexBackgroundColor: passData.backgroundColor || "#3B82F6"
+      };
       
+      // Create the loyalty object (individual pass)
       const loyaltyObject = {
         id: `${serviceAccount.project_id}.${passData.cardId}`,
-        classId: `${serviceAccount.project_id}.${passData.classId || "loyalty_class_generic"}`,
+        classId: loyaltyClass.id,
         state: "ACTIVE",
-        loyaltyPoints: {
-          balance: { string: "0" }
+        heroImage: {
+          sourceUri: {
+            uri: passData.logoUrl || "https://example.com/hero.png"
+          }
         },
-        accountName: passData.businessName || passData.cardName,
-        accountId: passData.cardId,
         textModulesData: [
           {
-            header: "Reward",
-            body: passData.rewardTitle || 'Loyalty Reward'
+            header: "Reward Progress",
+            body: passData.rewardTitle || "Collect stamps to earn rewards"
+          }
+        ],
+        linksModuleData: {
+          uris: [
+            {
+              uri: `https://your-domain.com/cards/${passData.cardId}`,
+              description: "View Card Details"
+            }
+          ]
+        },
+        imageModulesData: [
+          {
+            mainImage: {
+              sourceUri: {
+                uri: passData.logoUrl || "https://example.com/logo.png"
+              }
+            }
           }
         ],
         barcode: {
           type: "QR_CODE",
-          value: `loyalty:${passData.cardId}`
-        }
+          value: `${passData.cardId}`,
+          alternateText: passData.cardId
+        },
+        locations: [
+          {
+            latitude: 0,
+            longitude: 0
+          }
+        ]
       };
 
-      const payload = {
+      // Create JWT claims
+      const claims = {
         iss: serviceAccount.client_email,
-        aud: "google",
-        origins: ["*"],
-        typ: "savetowallet",
+        aud: 'google',
+        origins: ['*'],
+        typ: 'savetowallet',
         payload: {
-          loyaltyObjects: [loyaltyObject]
+          loyaltyObjects: [loyaltyObject],
+          loyaltyClasses: [loyaltyClass]
         }
       };
 
-      // Create a new SignJWT instance
-      const privateKey = await jose.importPKCS8(serviceAccount.private_key, 'RS256');
-      const jwt = await new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: 'RS256' })
-        .sign(privateKey);
+      // Sign the JWT
+      const privateKey = await jose.importPKCS8(
+        serviceAccount.private_key, 
+        'RS256'
+      );
       
-      return new Response(JSON.stringify({ jwt }), {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
+      const jwt = await new jose.SignJWT(claims)
+        .setProtectedHeader({ alg: 'RS256' })
+        .setIssuedAt()
+        .setExpirationTime('1h')
+        .sign(privateKey);
+
+      return new Response(
+        JSON.stringify({ jwt }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
         }
-      });
-    } else {
-      throw new Error("Invalid passType. Must be 'apple' or 'google'");
+      );
     }
+
+    throw new Error("Invalid pass type. Must be 'apple' or 'google'");
   } catch (error) {
-    console.error('Edge function error:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      details: error.stack 
-    }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
+    console.error('Error generating wallet pass:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      }), 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
       }
-    });
+    );
   }
 });
