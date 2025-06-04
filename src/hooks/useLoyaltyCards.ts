@@ -26,8 +26,10 @@ export const useLoyaltyCards = () => {
 
   useEffect(() => {
     if (business?.id) {
+      console.log('Business ID found, fetching cards for business:', business.id);
       fetchCards();
     } else {
+      console.log('No business ID found, clearing cards');
       setCards([]);
       setLoading(false);
     }
@@ -35,11 +37,13 @@ export const useLoyaltyCards = () => {
 
   const fetchCards = async () => {
     if (!business?.id) {
+      console.log('No business ID available for fetching cards');
       setLoading(false);
       return;
     }
 
     try {
+      console.log('Fetching loyalty cards for business:', business.id);
       const { data, error } = await supabase
         .from('loyalty_cards')
         .select('*')
@@ -51,22 +55,30 @@ export const useLoyaltyCards = () => {
         return;
       }
 
-      console.log('Supabase loyalty_cards raw data:', data);
-      if (!data || (Array.isArray(data) && (data.length === 0 || (data.length === 1 && Object.keys(data[0]).length === 0)))) {
-        console.warn('No valid loyalty card data returned from Supabase. Check your database and RLS policies.');
+      console.log('Raw loyalty cards data from Supabase:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('No loyalty cards found for this business');
+        setCards([]);
+        setLoading(false);
+        return;
       }
 
       // Transform the data to match our interface
-      const transformedCards: LoyaltyCard[] = (data || []).map(card => ({
-        id: card.id,
-        name: card.name,
-        type: card.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
-        design: card.design as { backgroundColor?: string; logoUrl?: string },
-        rules: card.rules as { rewardTitle?: string; totalNeeded?: number },
-        active: card.active,
-        created_at: card.created_at,
-      }));
+      const transformedCards: LoyaltyCard[] = data.map(card => {
+        console.log('Transforming card:', card);
+        return {
+          id: card.id,
+          name: card.name,
+          type: card.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
+          design: card.design as { backgroundColor?: string; logoUrl?: string },
+          rules: card.rules as { rewardTitle?: string; totalNeeded?: number },
+          active: card.active,
+          created_at: card.created_at,
+        };
+      });
 
+      console.log('Transformed loyalty cards:', transformedCards);
       setCards(transformedCards);
     } catch (error) {
       console.error('Error fetching cards:', error);
@@ -76,9 +88,15 @@ export const useLoyaltyCards = () => {
   };
 
   const createCard = async (cardData: Omit<LoyaltyCard, 'id' | 'created_at'>) => {
-    if (!business?.id) return;
+    if (!business?.id) {
+      console.error('No business ID available for card creation');
+      return;
+    }
 
     try {
+      console.log('Creating loyalty card with data:', cardData);
+      console.log('Business ID:', business.id);
+      
       const { data, error } = await supabase
         .from('loyalty_cards')
         .insert({
@@ -92,9 +110,13 @@ export const useLoyaltyCards = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating card:', error);
+        throw error;
+      }
 
-      await fetchCards();
+      console.log('Card created successfully:', data);
+      await fetchCards(); // Refresh the cards list
       return data;
     } catch (error) {
       console.error('Error creating card:', error);
@@ -104,14 +126,19 @@ export const useLoyaltyCards = () => {
 
   const deleteCard = async (cardId: string) => {
     try {
+      console.log('Deleting card:', cardId);
       const { error } = await supabase
         .from('loyalty_cards')
         .delete()
         .eq('id', cardId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting card:', error);
+        throw error;
+      }
 
-      await fetchCards();
+      console.log('Card deleted successfully');
+      await fetchCards(); // Refresh the cards list
     } catch (error) {
       console.error('Error deleting card:', error);
       throw error;
