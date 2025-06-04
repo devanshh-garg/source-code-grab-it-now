@@ -25,7 +25,8 @@ export const useWalletPasses = () => {
         logoUrl: card.design?.logoUrl || null,
         type: card.type,
         totalNeeded: card.rules?.totalNeeded || 10,
-        classId: 'loyalty_class_1' // Fixed class ID for now
+        classId: `loyalty_class_${card.id}`, // Make class ID unique per card
+        baseUrl: window.location.origin // Add base URL for links
       };
 
       console.log('Sending pass data:', passData);
