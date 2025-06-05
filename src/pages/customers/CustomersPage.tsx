@@ -96,7 +96,7 @@ const CustomersPage: React.FC = () => {
       console.error('Failed to create customer:', error);
       toast({
         title: "Error",
-        description: "Failed to create customer"
+        description: error instanceof Error ? error.message : "Failed to create customer"
       });
     }
   };
@@ -138,7 +138,7 @@ const CustomersPage: React.FC = () => {
       console.error('Failed to update customer:', error);
       toast({
         title: "Error",
-        description: "Failed to update customer"
+        description: error instanceof Error ? error.message : "Failed to update customer"
       });
     }
   };
@@ -156,7 +156,7 @@ const CustomersPage: React.FC = () => {
         console.error('Failed to delete customer:', error);
         toast({
           title: "Error",
-          description: "Failed to delete customer"
+          description: error instanceof Error ? error.message : "Failed to delete customer"
         });
       }
     }
