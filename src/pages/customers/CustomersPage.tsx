@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   Search, Filter, Download, MoreVertical, 
   Plus, Mail, Smartphone, Trash2, Edit, XCircle, 
-  CheckCircle, ChevronDown, UserPlus, Users, UserX
+  CheckCircle, ChevronDown, UserPlus, Users
 } from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers';
 
