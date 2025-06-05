@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBusinessData } from '../../hooks/useBusinessData';
 import { User, Mail, Building2, Save } from 'lucide-react';
 import { supabase } from '../../integrations/supabase/client';
-import { toast } from '../ui/use-toast';
+import { toast } from '../../components/ui/use-toast';
 
 const ProfilePage: React.FC = () => {
   const { currentUser } = useAuth();
