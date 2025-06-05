@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Search, Filter, Download, MoreVertical, 
@@ -6,12 +5,15 @@ import {
   CheckCircle, ChevronDown, UserPlus, Users
 } from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers';
+import { toast } from '../../components/ui/use-toast';
 
 const CustomersPage: React.FC = () => {
-  const { customers, loading, error, createCustomer, deleteCustomer } = useCustomers();
+  const { customers, loading, error, createCustomer, updateCustomer, deleteCustomer } = useCustomers();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCustomerMenu, setActiveCustomerMenu] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -71,9 +73,58 @@ const CustomersPage: React.FC = () => {
       // Reset form and close modal
       setFormData({ name: '', email: '', phone: '', initialPoints: 0 });
       setShowModal(false);
+      toast({
+        title: "Success",
+        description: "Customer created successfully"
+      });
     } catch (error) {
       console.error('Failed to create customer:', error);
-      // TODO: Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to create customer"
+      });
+    }
+  };
+
+  const handleEditClick = (customer: any) => {
+    setEditingCustomer({
+      ...customer,
+      phone: customer.phone || '',
+      initialPoints: customer.metadata?.initialPoints || 0
+    });
+    setShowEditModal(true);
+    setActiveCustomerMenu(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingCustomer) return;
+
+    try {
+      await updateCustomer(editingCustomer.id, {
+        name: editingCustomer.name,
+        email: editingCustomer.email,
+        phone: editingCustomer.phone || undefined,
+        metadata: {
+          ...editingCustomer.metadata,
+          initialPoints: editingCustomer.initialPoints
+        }
+      });
+      
+      // Close modal and reset state
+      setShowEditModal(false);
+      setEditingCustomer(null);
+      toast({
+        title: "Success",
+        description: "Customer updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to update customer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update customer"
+      });
     }
   };
 
@@ -82,9 +133,16 @@ const CustomersPage: React.FC = () => {
       try {
         await deleteCustomer(customerId);
         setActiveCustomerMenu(null);
+        toast({
+          title: "Success",
+          description: "Customer deleted successfully"
+        });
       } catch (error) {
         console.error('Failed to delete customer:', error);
-        // TODO: Show error toast
+        toast({
+          title: "Error",
+          description: "Failed to delete customer"
+        });
       }
     }
   };
@@ -258,7 +316,10 @@ const CustomersPage: React.FC = () => {
                           </button>
                           {activeCustomerMenu === customer.id && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 border border-gray-200">
-                              <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                              <button 
+                                onClick={() => handleEditClick(customer)}
+                                className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              >
                                 <Edit size={16} className="mr-3 text-gray-500" />
                                 <span>Edit Customer</span>
                               </button>
@@ -399,6 +460,113 @@ const CustomersPage: React.FC = () => {
                     type="button"
                     className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                     onClick={() => setShowModal(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Customer Modal */}
+      {showEditModal && editingCustomer && (
+        <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowEditModal(false)}></div>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={handleEditSubmit}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900">
+                          Edit Customer
+                        </h3>
+                        <button 
+                          type="button"
+                          onClick={() => setShowEditModal(false)} 
+                          className="text-gray-400 hover:text-gray-500"
+                        >
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                      
+                      <div className="mt-2 space-y-4">
+                        <div>
+                          <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700">
+                            Full Name
+                          </label>
+                          <input
+                            type="text"
+                            id="edit-name"
+                            required
+                            value={editingCustomer.name}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="John Doe"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700">
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            id="edit-email"
+                            required
+                            value={editingCustomer.email}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="john@example.com"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-700">
+                            Phone Number
+                          </label>
+                          <input
+                            type="tel"
+                            id="edit-phone"
+                            value={editingCustomer.phone}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="+1 (555) 123-4567"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="edit-initialPoints" className="block text-sm font-medium text-gray-700">
+                            Initial Points
+                          </label>
+                          <input
+                            type="number"
+                            id="edit-initialPoints"
+                            value={editingCustomer.initialPoints}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, initialPoints: parseInt(e.target.value) || 0 })}
+                            min="0"
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => setShowEditModal(false)}
                   >
                     Cancel
                   </button>
