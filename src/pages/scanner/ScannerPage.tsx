@@ -1,58 +1,189 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { 
   QrCode, Check, Plus, Minus, Users, 
   CreditCard, Clock, Stamp
 } from 'lucide-react';
+import { supabase } from '../../integrations/supabase/client';
+import { useCustomerLoyaltyCards } from '../../hooks/useCustomerLoyaltyCards';
+import { toast } from '../../components/ui/use-toast';
+
+interface ScannedCustomer {
+  id: string;
+  name: string;
+  email: string;
+  cardType: string;
+  currentPoints: number;
+  totalPoints: number;
+  scans: number;
+  lastVisit: string;
+  customerLoyaltyCardId: string;
+}
 
 const ScannerPage: React.FC = () => {
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [scannedCustomer, setScannedCustomer] = useState<any>(null);
+  const [scannedCustomer, setScannedCustomer] = useState<ScannedCustomer | null>(null);
   const [pointsToAdd, setPointsToAdd] = useState(1);
   const [successMessage, setSuccessMessage] = useState('');
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const { updateCustomerLoyaltyCard } = useCustomerLoyaltyCards();
 
-  // Mock scan function
+  useEffect(() => {
+    // Cleanup scanner on component unmount
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear();
+      }
+    };
+  }, []);
+
+  const fetchCustomerData = async (customerLoyaltyCardId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('customer_loyalty_cards')
+        .select(`
+          id,
+          points,
+          stamps,
+          last_activity,
+          customer_profiles (
+            id,
+            name,
+            email
+          ),
+          loyalty_cards (
+            id,
+            name,
+            type
+          )
+        `)
+        .eq('id', customerLoyaltyCardId)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Customer loyalty card not found');
+
+      const customerData: ScannedCustomer = {
+        id: data.customer_profiles.id,
+        name: data.customer_profiles.name,
+        email: data.customer_profiles.email,
+        cardType: data.loyalty_cards.name,
+        currentPoints: data.stamps || data.points || 0,
+        totalPoints: data.points || 0,
+        scans: 0, // This could be calculated from a transactions table if needed
+        lastVisit: data.last_activity,
+        customerLoyaltyCardId: data.id
+      };
+
+      setScannedCustomer(customerData);
+      return customerData;
+    } catch (error) {
+      console.error('Error fetching customer data:', error);
+      throw error;
+    }
+  };
+
   const handleStartScan = () => {
     setIsCameraActive(true);
-    // Simulate a scan after 2 seconds
-    setTimeout(() => {
-      const mockCustomer = {
-        id: 'cust-123',
-        name: 'Sarah Johnson',
-        email: 'sarah.j@example.com',
-        cardType: 'Coffee Rewards',
-        currentPoints: 6,
-        totalPoints: 450,
-        scans: 24,
-        lastVisit: '2023-11-10',
-      };
-      setScannedCustomer(mockCustomer);
-      setIsCameraActive(false);
-    }, 2000);
+    
+    // Initialize QR scanner
+    scannerRef.current = new Html5QrcodeScanner(
+      "qr-reader",
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      false
+    );
+
+    scannerRef.current.render(
+      async (decodedText) => {
+        // Stop scanning after successful scan
+        if (scannerRef.current) {
+          scannerRef.current.clear();
+        }
+        setIsCameraActive(false);
+
+        try {
+          // Extract customer loyalty card ID from QR code
+          const url = new URL(decodedText);
+          const customerLoyaltyCardId = url.pathname.split('/').pop();
+          
+          if (!customerLoyaltyCardId) {
+            throw new Error('Invalid QR code');
+          }
+
+          // Fetch customer data
+          await fetchCustomerData(customerLoyaltyCardId);
+        } catch (error) {
+          console.error('Error processing QR code:', error);
+          toast({
+            title: "Error",
+            description: "Invalid QR code or customer not found"
+          });
+        }
+      },
+      (errorMessage) => {
+        console.error('QR scan error:', errorMessage);
+      }
+    );
   };
 
   const handleCancel = () => {
+    if (scannerRef.current) {
+      scannerRef.current.clear();
+    }
     setIsCameraActive(false);
     setScannedCustomer(null);
     setSuccessMessage('');
   };
 
-  const handleAddPoints = () => {
-    // Simulate adding points
-    setSuccessMessage(`Successfully added ${pointsToAdd} ${pointsToAdd === 1 ? 'stamp' : 'stamps'} to ${scannedCustomer.name}'s card!`);
-    setScannedCustomer({
-      ...scannedCustomer,
-      currentPoints: scannedCustomer.currentPoints + pointsToAdd,
-      totalPoints: scannedCustomer.totalPoints + (pointsToAdd * 10),
-      scans: scannedCustomer.scans + 1,
-    });
-    
-    // Reset points to add
-    setPointsToAdd(1);
+  const handleAddPoints = async () => {
+    if (!scannedCustomer) return;
+
+    try {
+      const updates = {
+        points: scannedCustomer.currentPoints + pointsToAdd,
+        last_activity: new Date().toISOString()
+      };
+
+      await updateCustomerLoyaltyCard(scannedCustomer.customerLoyaltyCardId, updates);
+
+      // Update scanned customer state
+      setScannedCustomer(prev => prev ? {
+        ...prev,
+        currentPoints: prev.currentPoints + pointsToAdd,
+        totalPoints: prev.totalPoints + pointsToAdd,
+        lastVisit: new Date().toISOString()
+      } : null);
+
+      // Add to recent activity
+      const activity = {
+        type: 'points_added',
+        customerName: scannedCustomer.name,
+        points: pointsToAdd,
+        timestamp: new Date().toISOString()
+      };
+      setRecentActivity(prev => [activity, ...prev].slice(0, 5));
+
+      setSuccessMessage(`Successfully added ${pointsToAdd} ${pointsToAdd === 1 ? 'point' : 'points'} to ${scannedCustomer.name}'s card!`);
+      setPointsToAdd(1);
+
+      toast({
+        title: "Success",
+        description: `Added ${pointsToAdd} points to ${scannedCustomer.name}'s card`
+      });
+    } catch (error) {
+      console.error('Error adding points:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add points. Please try again."
+      });
+    }
   };
 
   const handleNewScan = () => {
     setScannedCustomer(null);
     setSuccessMessage('');
+    handleStartScan();
   };
 
   return (
@@ -82,12 +213,7 @@ const ScannerPage: React.FC = () => {
 
                 {isCameraActive ? (
                   <div>
-                    <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center relative overflow-hidden mb-4">
-                      <div className="absolute inset-0 bg-gray-800"></div>
-                      <div className="absolute w-3/4 h-3/4 border-2 border-blue-400 rounded-lg"></div>
-                      <div className="absolute w-full h-0.5 bg-blue-400 animate-scan"></div>
-                      <p className="text-white text-sm absolute bottom-4">Scanning...</p>
-                    </div>
+                    <div id="qr-reader" className="mb-4"></div>
                     <button
                       onClick={handleCancel}
                       className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-md transition-colors"
@@ -160,7 +286,7 @@ const ScannerPage: React.FC = () => {
                         <Stamp size={20} className="text-blue-600" />
                       </div>
                       <div className="text-2xl font-bold text-gray-900">{scannedCustomer.currentPoints}</div>
-                      <p className="text-xs text-gray-500">Current Stamps</p>
+                      <p className="text-xs text-gray-500">Current Points</p>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center w-10 h-10 bg-white rounded-full mx-auto mb-2 shadow-sm">
@@ -180,7 +306,7 @@ const ScannerPage: React.FC = () => {
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Add Stamps</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Add Points</h3>
                   <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
                     <button
                       onClick={() => setPointsToAdd(Math.max(1, pointsToAdd - 1))}
@@ -209,7 +335,7 @@ const ScannerPage: React.FC = () => {
                     onClick={handleAddPoints}
                     className="py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
                   >
-                    Add Stamps
+                    Add Points
                   </button>
                 </div>
               </div>
@@ -222,82 +348,32 @@ const ScannerPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-              <button className="text-sm text-blue-600 font-medium">
-                View All
-              </button>
             </div>
             
             <div className="space-y-5">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mt-1">
-                  <Stamp size={16} className="text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500">10 min ago</span>
+              {recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mt-1">
+                    <Stamp size={16} className="text-blue-600" />
                   </div>
-                  <p className="text-sm font-medium text-gray-900 mt-1">Added 1 stamp for <span className="text-blue-600">Michael Brown</span></p>
-                  <p className="text-xs text-gray-500 mt-1">Coffee Rewards • Current stamps: 7</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mt-1">
-                  <Check size={16} className="text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500">35 min ago</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-500">
+                        {new Date(activity.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 mt-1">
+                      Added {activity.points} point(s) for <span className="text-blue-600">{activity.customerName}</span>
+                    </p>
                   </div>
-                  <p className="text-sm font-medium text-gray-900 mt-1"><span className="text-blue-600">Alice Thompson</span> redeemed a reward</p>
-                  <p className="text-xs text-gray-500 mt-1">Free Coffee • 10 stamps completed</p>
                 </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mt-1">
-                  <Stamp size={16} className="text-blue-600" />
+              ))}
+
+              {recentActivity.length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  No recent activity
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500">1 hour ago</span>
-                  </div>
-                  <p className="text-sm font-medium text-gray-900 mt-1">Added 2 stamps for <span className="text-blue-600">Emily Davis</span></p>
-                  <p className="text-xs text-gray-500 mt-1">Coffee Rewards • Current stamps: 4</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mt-1">
-                  <Stamp size={16} className="text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500">2 hours ago</span>
-                  </div>
-                  <p className="text-sm font-medium text-gray-900 mt-1">Added 1 stamp for <span className="text-blue-600">James Wilson</span></p>
-                  <p className="text-xs text-gray-500 mt-1">Coffee Rewards • Current stamps: 9</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mt-1">
-                  <Users size={16} className="text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500">3 hours ago</span>
-                  </div>
-                  <p className="text-sm font-medium text-gray-900 mt-1">New customer: <span className="text-blue-600">Robert Martinez</span></p>
-                  <p className="text-xs text-gray-500 mt-1">Joined VIP Member program</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <button className="w-full py-2 bg-gray-50 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors">
-                Load More
-              </button>
+              )}
             </div>
           </div>
         </div>
