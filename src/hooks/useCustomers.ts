@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useBusinessData } from './useBusinessData';
@@ -108,28 +107,49 @@ export const useCustomers = () => {
     try {
       console.log('Updating customer:', customerId, updates);
       
+      // First check if the customer exists
+      const { data: existingCustomer, error: checkError } = await supabase
+        .from('customers')
+        .select()
+        .eq('id', customerId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking customer existence:', checkError);
+        throw checkError;
+      }
+
+      if (!existingCustomer) {
+        throw new Error('Customer not found');
+      }
+
+      // Proceed with update since we know the customer exists
       const { data, error } = await supabase
         .from('customers')
         .update(updates)
         .eq('id', customerId)
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Error updating customer:', error);
         throw error;
       }
 
-      console.log('Customer updated successfully:', data);
+      if (!data || data.length === 0) {
+        throw new Error('Failed to update customer');
+      }
+
+      const updatedCustomer = data[0];
+      console.log('Customer updated successfully:', updatedCustomer);
       
       // Update local state
       setCustomers(prev => 
         prev.map(customer => 
-          customer.id === customerId ? { ...customer, ...data } : customer
+          customer.id === customerId ? { ...customer, ...updatedCustomer } : customer
         )
       );
       
-      return data;
+      return updatedCustomer;
     } catch (err) {
       console.error('Failed to update customer:', err);
       throw err instanceof Error ? err : new Error('Failed to update customer');
