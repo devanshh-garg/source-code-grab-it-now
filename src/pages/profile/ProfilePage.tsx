@@ -3,20 +3,75 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBusinessData } from '../../hooks/useBusinessData';
 import { User, Mail, Building2, Save } from 'lucide-react';
+import { supabase } from '../../integrations/supabase/client';
+import { toast } from '../ui/use-toast';
 
 const ProfilePage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { business } = useBusinessData();
+  const { business, mutate } = useBusinessData();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     fullName: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || '',
     email: currentUser?.email || '',
     businessName: business?.name || '',
   });
 
-  const handleSave = () => {
-    // TODO: Implement profile update functionality
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!currentUser || !business) {
+      toast({
+        title: "Error",
+        description: "User or business data not available"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      // Update user metadata for full name
+      const { error: userError } = await supabase.auth.updateUser({
+        data: {
+          full_name: formData.fullName
+        }
+      });
+
+      if (userError) {
+        console.error('Error updating user metadata:', userError);
+        throw userError;
+      }
+
+      // Update business name in the businesses table
+      const { error: businessError } = await supabase
+        .from('businesses')
+        .update({ 
+          name: formData.businessName 
+        })
+        .eq('user_id', currentUser.id);
+
+      if (businessError) {
+        console.error('Error updating business:', businessError);
+        throw businessError;
+      }
+
+      // Refresh business data across the application
+      await mutate();
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully"
+      });
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getUserDisplayName = () => {
@@ -53,7 +108,8 @@ const ProfilePage: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              disabled={isSaving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               {isEditing ? 'Cancel' : 'Edit'}
             </button>
@@ -69,12 +125,12 @@ const ProfilePage: React.FC = () => {
                 type="text"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                disabled={!isEditing}
+                disabled={!isEditing || isSaving}
                 className={`w-full px-3 py-2 border rounded-md ${
                   isEditing 
                     ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' 
                     : 'border-gray-200 bg-gray-50'
-                } focus:outline-none`}
+                } focus:outline-none disabled:opacity-50`}
               />
             </div>
 
@@ -101,12 +157,12 @@ const ProfilePage: React.FC = () => {
                 type="text"
                 value={formData.businessName}
                 onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                disabled={!isEditing}
+                disabled={!isEditing || isSaving}
                 className={`w-full px-3 py-2 border rounded-md ${
                   isEditing 
                     ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' 
                     : 'border-gray-200 bg-gray-50'
-                } focus:outline-none`}
+                } focus:outline-none disabled:opacity-50`}
               />
             </div>
 
@@ -114,10 +170,11 @@ const ProfilePage: React.FC = () => {
               <div className="flex space-x-3 pt-4">
                 <button
                   onClick={handleSave}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  disabled={isSaving}
+                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
                 >
                   <Save size={16} className="mr-2" />
-                  Save Changes
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             )}
