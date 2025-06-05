@@ -5,10 +5,14 @@ import {
   CheckCircle, ChevronDown, UserPlus, Users
 } from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers';
+import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
+import { useCustomerLoyaltyCards } from '../../hooks/useCustomerLoyaltyCards';
 import { toast } from '../../components/ui/use-toast';
 
 const CustomersPage: React.FC = () => {
   const { customers, loading, error, createCustomer, updateCustomer, deleteCustomer } = useCustomers();
+  const { cards: loyaltyCards, loading: loyaltyCardsLoading } = useLoyaltyCards();
+  const { createCustomerLoyaltyCard, getCustomerLoyaltyCardsByCustomerId } = useCustomerLoyaltyCards();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCustomerMenu, setActiveCustomerMenu] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -18,7 +22,8 @@ const CustomersPage: React.FC = () => {
     name: '',
     email: '',
     phone: '',
-    initialPoints: 0
+    initialPoints: 0,
+    loyaltyCardId: ''
   });
 
   const toggleCustomerMenu = (customerId: string) => {
@@ -61,7 +66,7 @@ const CustomersPage: React.FC = () => {
     e.preventDefault();
     
     try {
-      await createCustomer({
+      const newCustomer = await createCustomer({
         name: formData.name,
         email: formData.email,
         phone: formData.phone || undefined,
@@ -70,8 +75,18 @@ const CustomersPage: React.FC = () => {
         }
       });
       
+      // If a loyalty card was selected, create the customer loyalty card relationship
+      if (formData.loyaltyCardId && newCustomer) {
+        await createCustomerLoyaltyCard({
+          customer_profile_id: newCustomer.id,
+          loyalty_card_id: formData.loyaltyCardId,
+          points: formData.initialPoints,
+          stamps: 0
+        });
+      }
+      
       // Reset form and close modal
-      setFormData({ name: '', email: '', phone: '', initialPoints: 0 });
+      setFormData({ name: '', email: '', phone: '', initialPoints: 0, loyaltyCardId: '' });
       setShowModal(false);
       toast({
         title: "Success",
@@ -145,6 +160,10 @@ const CustomersPage: React.FC = () => {
         });
       }
     }
+  };
+
+  const getCustomerLoyaltyCards = (customerId: string) => {
+    return getCustomerLoyaltyCardsByCustomerId(customerId);
   };
 
   if (loading) {
@@ -266,6 +285,12 @@ const CustomersPage: React.FC = () => {
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div className="flex items-center">
+                        Loyalty Cards
+                        <ChevronDown size={14} className="ml-1" />
+                      </div>
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <div className="flex items-center">
                         Joined
                         <ChevronDown size={14} className="ml-1" />
                       </div>
@@ -276,74 +301,96 @@ const CustomersPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                            {customer.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                            <div className="text-sm text-gray-500">{customer.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  {filteredCustomers.map((customer) => {
+                    const customerLoyaltyCards = getCustomerLoyaltyCards(customer.id);
+                    return (
+                      <tr key={customer.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <Mail size={12} className="mr-1" />
-                            <span>{customer.email}</span>
+                            <div className="flex-shrink-0 h-10 w-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                              {customer.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                              <div className="text-sm text-gray-500">{customer.email}</div>
+                            </div>
                           </div>
-                          {customer.phone && (
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2 text-sm text-gray-500">
                             <div className="flex items-center">
-                              <Smartphone size={12} className="mr-1" />
-                              <span>{customer.phone}</span>
+                              <Mail size={12} className="mr-1" />
+                              <span>{customer.email}</span>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(customer.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="relative">
-                          <button 
-                            onClick={() => toggleCustomerMenu(customer.id)}
-                            className="text-gray-400 hover:text-gray-500"
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-                          {activeCustomerMenu === customer.id && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 border border-gray-200">
-                              <button 
-                                onClick={() => handleEditClick(customer)}
-                                className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              >
-                                <Edit size={16} className="mr-3 text-gray-500" />
-                                <span>Edit Customer</span>
-                              </button>
-                              <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <Plus size={16} className="mr-3 text-gray-500" />
-                                <span>Add Points</span>
-                              </button>
-                              <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <Mail size={16} className="mr-3 text-gray-500" />
-                                <span>Send Message</span>
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteCustomer(customer.id)}
-                                className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 size={16} className="mr-3 text-red-500" />
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {customer.phone && (
+                              <div className="flex items-center">
+                                <Smartphone size={12} className="mr-1" />
+                                <span>{customer.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {customerLoyaltyCards.length > 0 ? (
+                              <div className="space-y-1">
+                                {customerLoyaltyCards.map((card) => (
+                                  <div key={card.id} className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">{card.loyalty_card_name}</span>
+                                    <div className="text-xs text-gray-500">
+                                      {card.points > 0 && <span>{card.points} pts</span>}
+                                      {card.stamps > 0 && <span>{card.stamps} stamps</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">No loyalty cards</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(customer.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="relative">
+                            <button 
+                              onClick={() => toggleCustomerMenu(customer.id)}
+                              className="text-gray-400 hover:text-gray-500"
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+                            {activeCustomerMenu === customer.id && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 border border-gray-200">
+                                <button 
+                                  onClick={() => handleEditClick(customer)}
+                                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                  <Edit size={16} className="mr-3 text-gray-500" />
+                                  <span>Edit Customer</span>
+                                </button>
+                                <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                  <Plus size={16} className="mr-3 text-gray-500" />
+                                  <span>Add Points</span>
+                                </button>
+                                <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                  <Mail size={16} className="mr-3 text-gray-500" />
+                                  <span>Send Message</span>
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteCustomer(customer.id)}
+                                  className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 size={16} className="mr-3 text-red-500" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -430,6 +477,29 @@ const CustomersPage: React.FC = () => {
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             placeholder="+1 (555) 123-4567"
                           />
+                        </div>
+
+                        <div>
+                          <label htmlFor="loyaltyCard" className="block text-sm font-medium text-gray-700">
+                            Loyalty Card (Optional)
+                          </label>
+                          <select
+                            id="loyaltyCard"
+                            value={formData.loyaltyCardId}
+                            onChange={(e) => setFormData({ ...formData, loyaltyCardId: e.target.value })}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            disabled={loyaltyCardsLoading}
+                          >
+                            <option value="">Select a loyalty card</option>
+                            {loyaltyCards.map((card) => (
+                              <option key={card.id} value={card.id}>
+                                {card.name}
+                              </option>
+                            ))}
+                          </select>
+                          {loyaltyCardsLoading && (
+                            <p className="text-sm text-gray-500 mt-1">Loading loyalty cards...</p>
+                          )}
                         </div>
                         
                         <div>
