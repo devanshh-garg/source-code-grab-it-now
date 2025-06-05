@@ -1,6 +1,6 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import type { Database } from '../lib/database.types';
 import { supabase } from '../integrations/supabase/client';
 
 export interface Business {
@@ -105,6 +105,7 @@ export const useBusinessData = () => {
         const transformedData: Business = {
           ...businessData,
           owner_id: businessData.user_id,
+          updated_at: businessData.created_at, // Use created_at as fallback for updated_at
           social_links: businessData.social_links as Business['social_links'],
           theme_settings: businessData.theme_settings as Business['theme_settings'],
           business_hours: businessData.business_hours,
