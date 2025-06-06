@@ -12,6 +12,14 @@ export interface Transaction {
   created_at: string;
 }
 
+export interface CreateTransactionData {
+  customer_card_id: string;
+  type: string;
+  points?: number;
+  stamps?: number;
+  metadata?: any;
+}
+
 export const useTransactions = () => {
   const { business } = useBusinessData();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -93,11 +101,29 @@ export const useTransactions = () => {
     }
   };
 
+  const createTransaction = async (transaction: CreateTransactionData) => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert({
+        customer_card_id: transaction.customer_card_id,
+        type: transaction.type,
+        points: transaction.points ?? 0,
+        stamps: transaction.stamps ?? 0,
+        metadata: transaction.metadata ?? {},
+      });
+    if (error) {
+      console.error('Error creating transaction:', error);
+      throw error;
+    }
+    return data;
+  };
+
   return {
     transactions,
     loading,
     error,
     fetchTransactions,
-    fetchTransactionsByCustomerId
+    fetchTransactionsByCustomerId,
+    createTransaction
   };
 };

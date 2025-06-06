@@ -18,7 +18,10 @@ interface ScannedCustomerDisplayProps {
   pointsToAdd: number;
   setPointsToAdd: (val: number) => void;
   handleAddPoints: () => void;
+  handleRedeemPoints: () => void;
   handleCancel: () => void;
+  isRedeemMode: boolean;
+  setIsRedeemMode: (val: boolean) => void;
 }
 
 const ScannedCustomerDisplay: React.FC<ScannedCustomerDisplayProps> = ({
@@ -26,7 +29,10 @@ const ScannedCustomerDisplay: React.FC<ScannedCustomerDisplayProps> = ({
   pointsToAdd,
   setPointsToAdd,
   handleAddPoints,
+  handleRedeemPoints,
   handleCancel,
+  isRedeemMode,
+  setIsRedeemMode,
 }) => {
   return (
     <div>
@@ -76,7 +82,27 @@ const ScannedCustomerDisplay: React.FC<ScannedCustomerDisplayProps> = ({
         </div>
       </div>
       <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Add {scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}</h3>
+        <div className="flex gap-2 mb-3">
+          <button
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${!isRedeemMode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setIsRedeemMode(false)}
+            type="button"
+          >
+            Add {scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${isRedeemMode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setIsRedeemMode(true)}
+            type="button"
+          >
+            Redeem {scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}
+          </button>
+        </div>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          {isRedeemMode
+            ? `Redeem ${scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}`
+            : `Add ${scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}`}
+        </h3>
         <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
           <button
             onClick={() => setPointsToAdd(Math.max(1, pointsToAdd - 1))}
@@ -101,10 +127,12 @@ const ScannedCustomerDisplay: React.FC<ScannedCustomerDisplayProps> = ({
           Cancel
         </button>
         <button
-          onClick={handleAddPoints}
-          className="py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
+          onClick={isRedeemMode ? handleRedeemPoints : handleAddPoints}
+          className={`py-3 font-medium rounded-md transition-colors ${isRedeemMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
         >
-          Add {scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}
+          {isRedeemMode
+            ? `Redeem ${scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}`
+            : `Add ${scannedCustomer.loyaltyCardType === 'stamp' ? 'Stamps' : 'Points'}`}
         </button>
       </div>
     </div>

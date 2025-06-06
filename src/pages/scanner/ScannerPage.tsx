@@ -4,6 +4,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Check } from 'lucide-react';
 import { supabase } from '../../integrations/supabase/client';
 import { useCustomerLoyaltyCards } from '../../hooks/useCustomerLoyaltyCards';
+import { useTransactions } from '../../hooks/useTransactions';
 import { toast } from '../../components/ui/use-toast';
 import ScannerControls from '../../components/scanner/ScannerControls';
 import ScannedCustomerDisplay from '../../components/scanner/ScannedCustomerDisplay';
@@ -27,8 +28,10 @@ const ScannerPage: React.FC = () => {
   const [pointsToAdd, setPointsToAdd] = useState(1);
   const [successMessage, setSuccessMessage] = useState('');
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [isRedeeming, setIsRedeeming] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const { updateCustomerLoyaltyCard } = useCustomerLoyaltyCards();
+  const { createTransaction } = useTransactions();
 
   useEffect(() => {
     // Cleanup scanner on component unmount
@@ -144,10 +147,9 @@ const ScannerPage: React.FC = () => {
     if (!scannedCustomer) return;
 
     try {
-      const updates = {
-        points: (scannedCustomer.currentPoints ?? 0) + pointsToAdd,
-        last_activity: new Date().toISOString()
-      };
+      const updates = scannedCustomer.loyaltyCardType === 'points'
+        ? { points: (scannedCustomer.currentPoints ?? 0) + pointsToAdd, last_activity: new Date().toISOString() }
+        : { stamps: (scannedCustomer.currentStamps ?? 0) + pointsToAdd, last_activity: new Date().toISOString() };
 
       await updateCustomerLoyaltyCard(scannedCustomer.customerLoyaltyCardId, updates);
 
@@ -160,19 +162,13 @@ const ScannerPage: React.FC = () => {
         metadata: {}
       };
 
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert(transactionData);
-
-      if (transactionError) {
-        console.error('Error logging transaction:', transactionError);
-        throw transactionError;
-      }
+      await createTransaction(transactionData);
 
       // Update scanned customer state
       setScannedCustomer(prev => prev ? {
         ...prev,
-        currentPoints: (prev.currentPoints ?? 0) + pointsToAdd,
+        currentPoints: prev.loyaltyCardType === 'points' ? (prev.currentPoints ?? 0) + pointsToAdd : prev.currentPoints,
+        currentStamps: prev.loyaltyCardType === 'stamp' ? (prev.currentStamps ?? 0) + pointsToAdd : prev.currentStamps,
         lastVisit: new Date().toISOString()
       } : null);
 
@@ -181,22 +177,79 @@ const ScannerPage: React.FC = () => {
         type: 'points_added',
         customerName: scannedCustomer.name,
         points: pointsToAdd,
+        mode: 'add',
         timestamp: new Date().toISOString()
       };
       setRecentActivity(prev => [activity, ...prev].slice(0, 5));
 
-      setSuccessMessage(`Successfully added ${pointsToAdd} ${pointsToAdd === 1 ? 'point' : 'points'} to ${scannedCustomer.name}'s card!`);
+      setSuccessMessage(`Successfully added ${pointsToAdd} ${scannedCustomer.loyaltyCardType === 'stamp' ? 'stamp' : 'point'}${pointsToAdd === 1 ? '' : 's'} to ${scannedCustomer.name}'s card!`);
       setPointsToAdd(1);
+      setIsRedeeming(false);
 
       toast({
         title: "Success",
-        description: `Added ${pointsToAdd} points to ${scannedCustomer.name}'s card`
+        description: `Added ${pointsToAdd} ${scannedCustomer.loyaltyCardType === 'stamp' ? 'stamp' : 'point'}${pointsToAdd === 1 ? '' : 's'} to ${scannedCustomer.name}'s card`
       });
     } catch (error) {
       console.error('Error adding points:', error);
       toast({
         title: "Error",
-        description: "Failed to add points. Please try again."
+        description: "Failed to add points/stamps. Please try again."
+      });
+    }
+  };
+
+  const handleRedeemPoints = async () => {
+    if (!scannedCustomer) return;
+    const available = scannedCustomer.loyaltyCardType === 'points' ? (scannedCustomer.currentPoints ?? 0) : (scannedCustomer.currentStamps ?? 0);
+    if (pointsToAdd > available) {
+      toast({
+        title: "Not enough to redeem",
+        description: `Customer only has ${available} ${scannedCustomer.loyaltyCardType === 'stamp' ? 'stamps' : 'points'} available.`
+      });
+      return;
+    }
+    try {
+      const updates = scannedCustomer.loyaltyCardType === 'points'
+        ? { points: available - pointsToAdd, last_activity: new Date().toISOString() }
+        : { stamps: available - pointsToAdd, last_activity: new Date().toISOString() };
+      await updateCustomerLoyaltyCard(scannedCustomer.customerLoyaltyCardId, updates);
+      // Log transaction
+      const transactionData = {
+        customer_card_id: scannedCustomer.customerLoyaltyCardId,
+        type: 'redeem',
+        points: scannedCustomer.loyaltyCardType === 'points' ? pointsToAdd : 0,
+        stamps: scannedCustomer.loyaltyCardType === 'stamp' ? pointsToAdd : 0,
+        metadata: {}
+      };
+      await createTransaction(transactionData);
+      setScannedCustomer(prev => prev ? {
+        ...prev,
+        currentPoints: prev.loyaltyCardType === 'points' ? available - pointsToAdd : prev.currentPoints,
+        currentStamps: prev.loyaltyCardType === 'stamp' ? available - pointsToAdd : prev.currentStamps,
+        lastVisit: new Date().toISOString()
+      } : null);
+      // Add to recent activity
+      const activity = {
+        type: 'points_redeemed',
+        customerName: scannedCustomer.name,
+        points: pointsToAdd,
+        mode: 'redeem',
+        timestamp: new Date().toISOString()
+      };
+      setRecentActivity(prev => [activity, ...prev].slice(0, 5));
+      setSuccessMessage(`Successfully redeemed ${pointsToAdd} ${scannedCustomer.loyaltyCardType === 'stamp' ? 'stamp' : 'point'}${pointsToAdd === 1 ? '' : 's'} from ${scannedCustomer.name}'s card!`);
+      setPointsToAdd(1);
+      setIsRedeeming(false);
+      toast({
+        title: "Success",
+        description: `Redeemed ${pointsToAdd} ${scannedCustomer.loyaltyCardType === 'stamp' ? 'stamp' : 'point'}${pointsToAdd === 1 ? '' : 's'} from ${scannedCustomer.name}'s card`
+      });
+    } catch (error) {
+      console.error('Error redeeming points:', error);
+      toast({
+        title: "Error",
+        description: "Failed to redeem points/stamps. Please try again."
       });
     }
   };
@@ -252,14 +305,13 @@ const ScannerPage: React.FC = () => {
                 pointsToAdd={pointsToAdd}
                 setPointsToAdd={setPointsToAdd}
                 handleAddPoints={handleAddPoints}
+                handleRedeemPoints={handleRedeemPoints}
                 handleCancel={handleCancel}
+                isRedeemMode={isRedeeming}
+                setIsRedeemMode={setIsRedeeming}
               />
             )}
           </div>
-        </div>
-        {/* Recent activity section */}
-        <div className="lg:col-span-2">
-          <ScannerRecentActivity recentActivity={recentActivity} />
         </div>
       </div>
     </div>
