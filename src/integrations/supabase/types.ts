@@ -585,7 +585,7 @@ export type Database = {
             foreignKeyName: "transactions_customer_card_id_fkey"
             columns: ["customer_card_id"]
             isOneToOne: false
-            referencedRelation: "customer_cards"
+            referencedRelation: "customer_loyalty_cards"
             referencedColumns: ["id"]
           },
         ]

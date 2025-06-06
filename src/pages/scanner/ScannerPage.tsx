@@ -13,6 +13,7 @@ interface ScannedCustomer {
   name: string;
   email: string;
   cardType: string;
+  loyaltyCardType: string;
   currentPoints: number;
   totalPoints: number;
   scans: number;
@@ -69,6 +70,7 @@ const ScannerPage: React.FC = () => {
         name: data.customer_profiles.name,
         email: data.customer_profiles.email,
         cardType: data.loyalty_cards.name,
+        loyaltyCardType: data.loyalty_cards.type,
         currentPoints: data.stamps || data.points || 0,
         totalPoints: data.points || 0,
         scans: 0, // This could be calculated from a transactions table if needed
@@ -146,6 +148,24 @@ const ScannerPage: React.FC = () => {
       };
 
       await updateCustomerLoyaltyCard(scannedCustomer.customerLoyaltyCardId, updates);
+
+      // Log transaction
+      const transactionData = {
+        customer_card_id: scannedCustomer.customerLoyaltyCardId,
+        type: 'earn',
+        points: scannedCustomer.loyaltyCardType === 'points' ? pointsToAdd : 0,
+        stamps: scannedCustomer.loyaltyCardType === 'stamp' ? pointsToAdd : 0,
+        metadata: {}
+      };
+
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert(transactionData);
+
+      if (transactionError) {
+        console.error('Error logging transaction:', transactionError);
+        throw transactionError;
+      }
 
       // Update scanned customer state
       setScannedCustomer(prev => prev ? {
