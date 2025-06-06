@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useBusinessData } from './useBusinessData';
@@ -24,23 +23,7 @@ export const useLoyaltyCards = () => {
   const [cards, setCards] = useState<LoyaltyCard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Don't fetch if business is still loading
-    if (businessLoading) {
-      return;
-    }
-
-    if (business?.id) {
-      console.log('Business ID found, fetching cards for business:', business.id);
-      fetchCards();
-    } else {
-      console.log('No business ID found, clearing cards');
-      setCards([]);
-      setLoading(false);
-    }
-  }, [business?.id, businessLoading]);
-
-  const fetchCards = async () => {
+  const fetchCards = useCallback(async () => {
     if (!business?.id) {
       console.log('No business ID available for fetching cards');
       setLoading(false);
@@ -90,9 +73,25 @@ export const useLoyaltyCards = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [business?.id]);
 
-  const createCard = async (cardData: Omit<LoyaltyCard, 'id' | 'created_at'>) => {
+  useEffect(() => {
+    // Don't fetch if business is still loading
+    if (businessLoading) {
+      return;
+    }
+
+    if (business?.id) {
+      console.log('Business ID found, fetching cards for business:', business.id);
+      fetchCards();
+    } else {
+      console.log('No business ID found, clearing cards');
+      setCards([]);
+      setLoading(false);
+    }
+  }, [business?.id, businessLoading, fetchCards]);
+
+  const createCard = useCallback(async (cardData: Omit<LoyaltyCard, 'id' | 'created_at'>) => {
     if (!business?.id) {
       console.error('No business ID available for card creation');
       throw new Error('No business found. Please refresh the page and try again.');
@@ -131,9 +130,9 @@ export const useLoyaltyCards = () => {
       console.error('Error creating card:', error);
       throw error;
     }
-  };
+  }, [business?.id, fetchCards]);
 
-  const deleteCard = async (cardId: string) => {
+  const deleteCard = useCallback(async (cardId: string) => {
     try {
       console.log('Deleting card:', cardId);
       const { error } = await supabase
@@ -152,7 +151,7 @@ export const useLoyaltyCards = () => {
       console.error('Error deleting card:', error);
       throw error;
     }
-  };
+  }, [fetchCards]);
 
   // Fetch a single card by ID
   const getCardById = useCallback(async (cardId: string): Promise<LoyaltyCard | null> => {
@@ -178,7 +177,7 @@ export const useLoyaltyCards = () => {
       console.error('Failed to fetch card by ID:', err);
       return null;
     }
-  }, [supabase]);
+  }, []);
 
   // Update a card by ID
   const updateCard = useCallback(async (cardId: string, cardData: Partial<LoyaltyCard>) => {
@@ -200,7 +199,7 @@ export const useLoyaltyCards = () => {
       console.error('Failed to update card:', err);
       throw err;
     }
-  }, [supabase]);
+  }, [fetchCards]);
 
   return {
     cards,
