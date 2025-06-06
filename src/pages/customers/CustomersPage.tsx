@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { 
   Search, Filter, Download, MoreVertical, 
   Plus, Mail, Smartphone, Trash2, Edit, XCircle, 
-  CheckCircle, ChevronDown, UserPlus, Users
+  CheckCircle, ChevronDown, UserPlus, Users, Eye
 } from 'lucide-react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
 import { useCustomerLoyaltyCards } from '../../hooks/useCustomerLoyaltyCards';
 import { toast } from '../../components/ui/use-toast';
+import CustomerDetailsModal from '../../components/customers/CustomerDetailsModal';
 
 const CustomersPage: React.FC = () => {
   const { customers, loading, error, createCustomer, updateCustomer, deleteCustomer } = useCustomers();
@@ -17,6 +18,8 @@ const CustomersPage: React.FC = () => {
   const [activeCustomerMenu, setActiveCustomerMenu] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -32,6 +35,12 @@ const CustomersPage: React.FC = () => {
     } else {
       setActiveCustomerMenu(customerId);
     }
+  };
+
+  const handleViewDetails = (customer: any) => {
+    setSelectedCustomer(customer);
+    setShowDetailsModal(true);
+    setActiveCustomerMenu(null);
   };
 
   const filteredCustomers = customers.filter(customer => 
@@ -363,6 +372,13 @@ const CustomersPage: React.FC = () => {
                             {activeCustomerMenu === customer.id && (
                               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 border border-gray-200">
                                 <button 
+                                  onClick={() => handleViewDetails(customer)}
+                                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                  <Eye size={16} className="mr-3 text-gray-500" />
+                                  <span>View Details</span>
+                                </button>
+                                <button 
                                   onClick={() => handleEditClick(customer)}
                                   className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                 >
@@ -645,6 +661,17 @@ const CustomersPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Customer Details Modal */}
+      {showDetailsModal && selectedCustomer && (
+        <CustomerDetailsModal
+          customer={selectedCustomer}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedCustomer(null);
+          }}
+        />
       )}
     </div>
   );
