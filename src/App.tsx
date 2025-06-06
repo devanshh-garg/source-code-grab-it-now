@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/auth/LoginPage';
+import ContactPage from './pages/ContactPage';
 import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CardsPage from './pages/cards/CardsPage';
@@ -38,6 +39,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
           <Route path="/cards/:id" element={<PublicCardPage />} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>

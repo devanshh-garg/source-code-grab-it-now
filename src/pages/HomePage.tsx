@@ -299,7 +299,7 @@ const HomePage: React.FC = () => {
               <ul className="space-y-3">
                 <li><a href="#about" className="text-base text-gray-500 hover:text-gray-900 transition-colors">About</a></li>
                 <li><a href="#careers" className="text-base text-gray-500 hover:text-gray-900 transition-colors">Careers</a></li>
-                <li><a href="#contact" className="text-base text-gray-500 hover:text-gray-900 transition-colors">Contact</a></li>
+                <li><a href="/contact" className="text-base text-gray-500 hover:text-gray-900 transition-colors">Contact</a></li>
                 <li><a href="#privacy" className="text-base text-gray-500 hover:text-gray-900 transition-colors">Privacy Policy</a></li>
               </ul>
             </div>
