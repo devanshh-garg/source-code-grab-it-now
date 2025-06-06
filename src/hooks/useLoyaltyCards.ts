@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useBusinessData } from './useBusinessData';
 
@@ -154,5 +154,61 @@ export const useLoyaltyCards = () => {
     }
   };
 
-  return { cards, loading: loading || businessLoading, createCard, deleteCard, refetch: fetchCards };
+  // Fetch a single card by ID
+  const getCardById = useCallback(async (cardId: string): Promise<LoyaltyCard | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('loyalty_cards')
+        .select('*')
+        .eq('id', cardId)
+        .single();
+      if (error) throw error;
+      if (!data) return null;
+      // Transform to LoyaltyCard type
+      return {
+        id: data.id,
+        name: data.name,
+        type: data.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
+        design: data.design as { backgroundColor?: string; logoUrl?: string },
+        rules: data.rules as { rewardTitle?: string; totalNeeded?: number },
+        active: data.active,
+        created_at: data.created_at,
+      };
+    } catch (err) {
+      console.error('Failed to fetch card by ID:', err);
+      return null;
+    }
+  }, [supabase]);
+
+  // Update a card by ID
+  const updateCard = useCallback(async (cardId: string, cardData: Partial<LoyaltyCard>) => {
+    try {
+      const { error } = await supabase
+        .from('loyalty_cards')
+        .update({
+          name: cardData.name,
+          type: cardData.type,
+          design: cardData.design,
+          rules: cardData.rules,
+          active: cardData.active,
+        })
+        .eq('id', cardId);
+      if (error) throw error;
+      await fetchCards();
+      return true;
+    } catch (err) {
+      console.error('Failed to update card:', err);
+      throw err;
+    }
+  }, [supabase]);
+
+  return {
+    cards,
+    loading: loading || businessLoading,
+    createCard,
+    deleteCard,
+    getCardById,
+    updateCard,
+    refetch: fetchCards
+  };
 };

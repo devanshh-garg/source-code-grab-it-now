@@ -2,9 +2,10 @@ import React from 'react';
 import { Stamp } from 'lucide-react';
 
 interface Activity {
-  type: string;
+  type: string; // 'points_added' | 'points_redeemed' | ...
   customerName: string;
   points: number;
+  mode?: 'add' | 'redeem';
   timestamp: string;
 }
 
@@ -30,9 +31,16 @@ const ScannerRecentActivity: React.FC<ScannerRecentActivityProps> = ({ recentAct
                   {new Date(activity.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-              <p className="text-sm font-medium text-gray-900 mt-1">
-                Added {activity.points} {activity.type === 'stamp' ? 'stamp(s)' : 'point(s)'} for <span className="text-blue-600">{activity.customerName}</span>
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className={`px-2 py-0.5 text-xs rounded-full font-semibold ${activity.mode === 'redeem' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}
+                >
+                  {activity.mode === 'redeem' ? 'Redeem' : 'Add'}
+                </span>
+                <span className="text-sm font-medium text-gray-900">
+                  {activity.mode === 'redeem' ? 'Redeemed' : 'Added'} {activity.points} {activity.type === 'points_redeemed' || activity.type === 'points_added' ? 'point(s)' : 'stamp(s)'} for <span className="text-blue-600">{activity.customerName}</span>
+                </span>
+              </div>
             </div>
           </div>
         ))}

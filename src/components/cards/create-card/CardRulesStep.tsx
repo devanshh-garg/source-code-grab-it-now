@@ -29,7 +29,7 @@ const CardRulesStep: React.FC<CardRulesStepProps> = ({ cardData, handleChange })
               <Minus size={20} />
             </button>
             <span className="text-2xl font-bold w-12 text-center">
-              {cardData.stampGoal}
+              {Number.isFinite(cardData.stampGoal) ? cardData.stampGoal : 10}
             </span>
             <button
               onClick={() => handleChange('stampGoal', Math.min(20, cardData.stampGoal + 1))}
@@ -48,7 +48,7 @@ const CardRulesStep: React.FC<CardRulesStepProps> = ({ cardData, handleChange })
           </label>
           <input
             type="number"
-            value={cardData.pointsGoal}
+            value={Number.isFinite(cardData.pointsGoal) ? cardData.pointsGoal : 1000}
             onChange={(e) => handleChange('pointsGoal', parseInt(e.target.value))}
             min="100"
             step="100"

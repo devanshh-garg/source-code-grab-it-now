@@ -313,6 +313,10 @@ const ScannerPage: React.FC = () => {
             )}
           </div>
         </div>
+        {/* Recent activity section */}
+        <div className="lg:col-span-2">
+          <ScannerRecentActivity recentActivity={recentActivity} />
+        </div>
       </div>
     </div>
   );

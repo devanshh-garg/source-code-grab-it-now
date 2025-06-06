@@ -1,5 +1,6 @@
 import React from 'react';
 import { CreditCard, MoreVertical, Edit, Trash2, Copy, QrCode, Share2, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import WalletPassActions from './WalletPassActions';
 
 interface LoyaltyCardItemProps {
@@ -50,10 +51,14 @@ const LoyaltyCardItem: React.FC<LoyaltyCardItemProps> = ({
                   <Eye size={16} className="mr-3 text-gray-500" />
                   <span>Preview</span>
                 </button>
-                <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <Link
+                  to={`/cards/edit/${card.id}`}
+                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => toggleCardMenu(card.id)}
+                >
                   <Edit size={16} className="mr-3 text-gray-500" />
                   <span>Edit</span>
-                </button>
+                </Link>
                 <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                   <QrCode size={16} className="mr-3 text-gray-500" />
                   <span>Generate QR</span>

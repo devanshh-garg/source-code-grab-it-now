@@ -7,6 +7,7 @@ import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CardsPage from './pages/cards/CardsPage';
 import CreateCardPage from './pages/cards/CreateCardPage';
+import EditCardPage from './pages/cards/EditCardPage';
 import CustomersPage from './pages/customers/CustomersPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import BusinessSettingsPage from './pages/settings/BusinessSettingsPage';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/cards" element={<CardsPage />} />
             <Route path="/cards/create" element={<CreateCardPage />} />
+            <Route path="/cards/edit/:cardId" element={<EditCardPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<BusinessSettingsPage />} />

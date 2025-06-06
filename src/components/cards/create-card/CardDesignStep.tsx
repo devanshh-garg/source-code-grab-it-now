@@ -26,6 +26,16 @@ const CardDesignStep: React.FC<CardDesignStepProps> = ({
   loading,
   fileInputRef
 }) => {
+  // Defensive: Always provide fallback for customColors
+  const safeCustomColors = cardData.customColors || { primary: '#3B82F6', secondary: '#2563EB', text: '#ffffff' };
+
+  // Normalize hex color to 6-digit format
+  function normalizeHex(color: string) {
+    if (/^#[0-9A-Fa-f]{3}$/.test(color)) {
+      return '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+    }
+    return color;
+  }
   return (
     <>
       <div>
@@ -36,7 +46,14 @@ const CardDesignStep: React.FC<CardDesignStepProps> = ({
           {colorThemes.map((theme) => (
             <div
               key={theme.id}
-              onClick={() => handleChange('colorTheme', theme.id)}
+              onClick={() => {
+  handleChange('colorTheme', theme.id);
+  handleChange('customColors', {
+    primary: theme.primary,
+    secondary: theme.secondary,
+    text: '#ffffff', // Always set text to white for theme selection
+  });
+}}
               className={`cursor-pointer transition-all ${
                 cardData.colorTheme === theme.id ? 'ring-2 ring-offset-2 ring-blue-500' : ''
               }`}
@@ -62,9 +79,9 @@ const CardDesignStep: React.FC<CardDesignStepProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Primary</label>
             <input
               type="color"
-              value={cardData.customColors.primary}
+              value={normalizeHex(safeCustomColors.primary)}
               onChange={(e) => handleChange('customColors', {
-                ...cardData.customColors,
+                ...safeCustomColors,
                 primary: e.target.value
               })}
               className="block w-full h-10 rounded-md cursor-pointer"
@@ -74,9 +91,9 @@ const CardDesignStep: React.FC<CardDesignStepProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Secondary</label>
             <input
               type="color"
-              value={cardData.customColors.secondary}
+              value={normalizeHex(safeCustomColors.secondary)}
               onChange={(e) => handleChange('customColors', {
-                ...cardData.customColors,
+                ...safeCustomColors,
                 secondary: e.target.value
               })}
               className="block w-full h-10 rounded-md cursor-pointer"
@@ -86,9 +103,9 @@ const CardDesignStep: React.FC<CardDesignStepProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Text</label>
             <input
               type="color"
-              value={cardData.customColors.text}
+              value={normalizeHex(safeCustomColors.text)}
               onChange={(e) => handleChange('customColors', {
-                ...cardData.customColors,
+                ...safeCustomColors,
                 text: e.target.value
               })}
               className="block w-full h-10 rounded-md cursor-pointer"

@@ -49,7 +49,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ cardData }) => {
         {type === 'stamp' && (
           <div className="space-y-3 mb-4">
             <div className="grid grid-cols-5 gap-2">
-              {[...Array(Math.min(5, stampGoal))].map((_, i) => (
+              {[...Array(Math.min(5, Number.isFinite(stampGoal) && stampGoal > 0 ? stampGoal : 0))].map((_, i) => (
                 <div 
                   key={i}
                   className="aspect-square rounded-md flex items-center justify-center"
@@ -59,9 +59,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ cardData }) => {
                 </div>
               ))}
             </div>
-            {stampGoal > 5 && (
+            {stampGoal > 5 && Number.isFinite(stampGoal) && (
               <div className="grid grid-cols-5 gap-2">
-                {[...Array(Math.min(5, stampGoal - 5))].map((_, i) => (
+                {[...Array(Math.min(5, stampGoal - 5 > 0 ? stampGoal - 5 : 0))].map((_, i) => (
                   <div 
                     key={i}
                     className="aspect-square rounded-md flex items-center justify-center"
