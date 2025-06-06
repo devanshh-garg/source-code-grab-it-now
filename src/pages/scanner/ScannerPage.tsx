@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { 
-  QrCode, Check, Plus, Minus, Users, 
+  QrCode, Check, Plus, Minus, 
   CreditCard, Clock, Stamp
 } from 'lucide-react';
 import { supabase } from '../../integrations/supabase/client';

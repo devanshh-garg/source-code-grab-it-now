@@ -9,7 +9,7 @@ export interface CustomerLoyaltyCard {
   loyalty_card_id: string;
   points: number;
   stamps: number;
-  tier: string;
+  tier: string | null;
   joined_at: string;
   last_activity: string;
   // Joined data from loyalty_cards table
