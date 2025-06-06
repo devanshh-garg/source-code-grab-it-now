@@ -30,11 +30,24 @@ const EditCardPage: React.FC = () => {
       }
       setLoading(true);
       try {
-        console.log('[EditCardPage] Fetching card with ID:', cardId);
         const card = await getCardById(cardId);
-        console.log('[EditCardPage] Fetched card:', card);
-        setCardData(card);
-        console.log('[EditCardPage] cardData after set:', card);
+        if (!card) throw new Error('Card not found');
+        // Map all relevant fields for editing UI
+        setCardData({
+          id: card.id,
+          name: card.name || '',
+          type: card.type || 'stamp',
+          reward: card.rules?.rewardTitle || '',
+          stampGoal: card.rules?.totalNeeded || 10,
+          pointsGoal: card.rules?.totalNeeded || 1000,
+          logo: card.design?.logoUrl || '',
+          customColors: (card.design as any)?.customColors || { primary: '#3B82F6', secondary: '#2563EB', text: '#ffffff' },
+          colorTheme: (card.design as any)?.colorTheme || 'blue',
+          // Optionally preserve extra fields if they exist in the DB
+          ...((card as any).businessAddress ? { businessAddress: (card as any).businessAddress } : {}),
+          ...((card as any).businessWebsite ? { businessWebsite: (card as any).businessWebsite } : {}),
+          ...((card as any).socialLinks ? { socialLinks: (card as any).socialLinks } : {}),
+        });
       } catch (err) {
         setError('Failed to load card data.');
       } finally {
@@ -98,6 +111,34 @@ const EditCardPage: React.FC = () => {
     setCardData((prev: any) => ({ ...prev, [field]: value }));
   };
 
+  // Handles uploading a logo to Supabase and updates cardData with local and public URLs
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    // Local preview URL
+    const localUrl = URL.createObjectURL(file);
+    setCardData((prev: any) => ({ ...prev, logo: localUrl }));
+    // Upload to Supabase Storage
+    try {
+      setLoading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo_${cardId}_${Date.now()}.${fileExt}`;
+      const { data, error } = await import('../../integrations/supabase/client').then(m => m.supabase.storage.from('logos').upload(fileName, file, { upsert: true }));
+      if (error) throw error;
+      // Get public URL
+      const { data: publicUrlData } = await import('../../integrations/supabase/client').then(m => m.supabase.storage.from('logos').getPublicUrl(fileName));
+      const publicUrl = publicUrlData?.publicUrl;
+      if (publicUrl) {
+        setCardData((prev: any) => ({ ...prev, logo: publicUrl }));
+      }
+    } catch (err) {
+      setError('Failed to upload logo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   const handleStepChange = (step: number) => setCurrentStep(step);
 
   const handleSubmit = async () => {
@@ -132,7 +173,7 @@ const EditCardPage: React.FC = () => {
             <CardBasicInfoStep cardData={cardData} handleChange={handleChange} business={business} />
           )}
           {currentStep === 2 && (
-            <CardDesignStep cardData={cardData} handleChange={handleChange} handleLogoUpload={() => {}} loading={loading} fileInputRef={fileInputRef} />
+            <CardDesignStep cardData={cardData} handleChange={handleChange} handleLogoUpload={handleLogoUpload} loading={loading} fileInputRef={fileInputRef} />
           )}
           {currentStep === 3 && (
             <CardRulesStep cardData={safeCardData} handleChange={handleChange} />

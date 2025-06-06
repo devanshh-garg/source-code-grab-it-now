@@ -14,7 +14,8 @@ interface CardDesignStepProps {
     logo: string;
   };
   handleChange: (field: string, value: any) => void;
-  handleLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  // handleLogoUpload is an async function for file input change
+  handleLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   loading: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
 }
