@@ -87,13 +87,13 @@ const AnalyticsPage: React.FC = () => {
 
       setStats(totals);
 
-      // Fetch transactions and calculate distribution
+      // Fetch transactions and calculate distribution using the updated relationship
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select(`
           type,
-          customer_card:customer_card_id (
-            card:card_id (
+          customer_loyalty_cards!inner (
+            loyalty_cards!inner (
               business_id
             )
           )
@@ -105,7 +105,7 @@ const AnalyticsPage: React.FC = () => {
 
       // Filter transactions for current business and aggregate by type
       const businessTransactions = transactionsData
-        ?.filter(tx => tx.customer_card?.card?.business_id === business.id) || [];
+        ?.filter(tx => tx.customer_loyalty_cards?.loyalty_cards?.business_id === business.id) || [];
 
       const distribution = businessTransactions.reduce((acc: any[], transaction) => {
         const existingType = acc.find(item => item.type === transaction.type);
