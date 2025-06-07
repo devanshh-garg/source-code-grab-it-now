@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronRight } from 'lucide-react';
@@ -6,7 +5,6 @@ import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
 import { supabase } from '../../integrations/supabase/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBusinessData } from '../../hooks/useBusinessData';
-import { colorThemes } from '../../constants/loyalty';
 import CardPreview from '../../components/cards/CardPreview';
 import CardBasicInfoStep from '../../components/cards/create-card/CardBasicInfoStep';
 import CardDesignStep from '../../components/cards/create-card/CardDesignStep';
@@ -19,6 +17,7 @@ const CreateCardPage: React.FC = () => {
   const { business, loading: businessLoading } = useBusinessData();
   const { createCard } = useLoyaltyCards();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [currentStep, setCurrentStep] = useState(1);
@@ -26,6 +25,7 @@ const CreateCardPage: React.FC = () => {
     name: '',
     type: '',
     template: '',
+    selectedTemplate: '',
     colorTheme: 'blue',
     customColors: {
       primary: '#3B82F6',
@@ -34,10 +34,13 @@ const CreateCardPage: React.FC = () => {
     },
     logo: '',
     logoUrl: '',
+    backgroundImage: '',
+    backgroundImageUrl: '',
     stampGoal: 10,
     pointsGoal: 1000,
     reward: '',
     expiryDate: '',
+    expiryDays: undefined as number | undefined,
     description: '',
     termsAndConditions: '',
     businessName: '',
@@ -49,6 +52,8 @@ const CreateCardPage: React.FC = () => {
       facebook: '',
       twitter: '',
     },
+    tiers: [] as Array<{ name: string; goal: number; reward: string }>,
+    customRewardType: 'free_item',
   });
 
   // Show loading state while business is being fetched/created
@@ -78,23 +83,7 @@ const CreateCardPage: React.FC = () => {
   }
 
   const handleChange = (field: string, value: any) => {
-    setCardData((prev) => {
-      const newData = { ...prev, [field]: value };
-      
-      // Update colors when theme changes
-      if (field === 'colorTheme') {
-        const theme = colorThemes.find(t => t.id === value);
-        if (theme) {
-          newData.customColors = {
-            ...newData.customColors,
-            primary: theme.primary,
-            secondary: theme.secondary,
-          };
-        }
-      }
-      
-      return newData;
-    });
+    setCardData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +121,41 @@ const CreateCardPage: React.FC = () => {
     }
   };
 
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    try {
+      setLoading(true);
+      
+      // Create a preview URL for immediate display
+      const previewUrl = URL.createObjectURL(file);
+      setCardData(prev => ({ ...prev, backgroundImage: previewUrl }));
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `backgrounds/${currentUser.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('business-logos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-logos')
+        .getPublicUrl(fileName);
+
+      setCardData(prev => ({ ...prev, backgroundImageUrl: publicUrl }));
+    } catch (error) {
+      console.error('Error uploading background:', error);
+      setError('Failed to upload background image. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateCard = async () => {
     if (!cardData.name.trim() || !cardData.type || !cardData.reward.trim()) {
       setError('Please fill in all required fields: Card Name, Type, and Reward Title.');
@@ -147,11 +171,18 @@ const CreateCardPage: React.FC = () => {
         type: cardData.type as 'stamp' | 'points' | 'tier' | 'tiered' | 'discount',
         design: {
           backgroundColor: cardData.customColors.primary,
+          customColors: cardData.customColors,
           logoUrl: cardData.logoUrl || undefined,
+          backgroundImageUrl: cardData.backgroundImageUrl || undefined,
+          selectedTemplate: cardData.selectedTemplate || undefined,
         },
         rules: {
           rewardTitle: cardData.reward.trim(),
           totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
+          tiers: cardData.tiers.length > 0 ? cardData.tiers : undefined,
+          expiryDays: cardData.expiryDays || undefined,
+          customRewardType: cardData.customRewardType || undefined,
+          termsAndConditions: cardData.termsAndConditions || undefined,
         },
         active: true,
       };
@@ -188,8 +219,10 @@ const CreateCardPage: React.FC = () => {
             cardData={cardData}
             handleChange={handleChange}
             handleLogoUpload={handleLogoUpload}
+            handleBackgroundUpload={handleBackgroundUpload}
             loading={loading}
             fileInputRef={fileInputRef}
+            backgroundInputRef={backgroundInputRef}
           />
         );
       case 3:
@@ -209,6 +242,13 @@ const CreateCardPage: React.FC = () => {
       default:
         return null;
     }
+  };
+
+  // Prepare preview data
+  const previewData = {
+    ...cardData,
+    businessName: business?.name || cardData.businessName,
+    backgroundImage: cardData.backgroundImage || (cardData.selectedTemplate ? cardData.backgroundImage : undefined),
   };
 
   return (
@@ -303,7 +343,7 @@ const CreateCardPage: React.FC = () => {
       <div className="lg:sticky lg:top-6 space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Card Preview</h2>
-          <CardPreview cardData={cardData} />
+          <CardPreview cardData={previewData} />
         </div>
       </div>
     </div>

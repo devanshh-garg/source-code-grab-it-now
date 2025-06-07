@@ -1,7 +1,9 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
 import { useBusinessData } from '../../hooks/useBusinessData';
+import { supabase } from '../../integrations/supabase/client';
 
 import CardPreview from '../../components/cards/CardPreview';
 import CardBasicInfoStep from '../../components/cards/create-card/CardBasicInfoStep';
@@ -12,10 +14,10 @@ import CardBusinessInfoStep from '../../components/cards/create-card/CardBusines
 const EditCardPage: React.FC = () => {
   const navigate = useNavigate();
   const { cardId } = useParams<{ cardId: string }>();
-  // Removed unused currentUser to resolve lint warning
   const { business, loading: businessLoading } = useBusinessData();
   const { getCardById, updateCard } = useLoyaltyCards();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [currentStep, setCurrentStep] = useState(1);
@@ -41,8 +43,14 @@ const EditCardPage: React.FC = () => {
           stampGoal: card.rules?.totalNeeded || 10,
           pointsGoal: card.rules?.totalNeeded || 1000,
           logo: card.design?.logoUrl || '',
+          backgroundImage: (card.design as any)?.backgroundImageUrl || '',
           customColors: (card.design as any)?.customColors || { primary: '#3B82F6', secondary: '#2563EB', text: '#ffffff' },
           colorTheme: (card.design as any)?.colorTheme || 'blue',
+          selectedTemplate: (card.design as any)?.selectedTemplate || '',
+          tiers: (card.rules as any)?.tiers || [],
+          expiryDays: (card.rules as any)?.expiryDays || undefined,
+          customRewardType: (card.rules as any)?.customRewardType || 'free_item',
+          termsAndConditions: (card.rules as any)?.termsAndConditions || '',
           // Optionally preserve extra fields if they exist in the DB
           ...((card as any).businessAddress ? { businessAddress: (card as any).businessAddress } : {}),
           ...((card as any).businessWebsite ? { businessWebsite: (card as any).businessWebsite } : {}),
@@ -57,23 +65,28 @@ const EditCardPage: React.FC = () => {
     fetchCard();
   }, [cardId, getCardById]);
 
-  // Defensive: Ensure cardData.customColors is always defined
   // Defensive: Provide defaults for all required fields
   const safeCardData = {
     name: cardData?.name || '',
     type: cardData?.type || 'stamp',
-    businessName: cardData?.businessName || '',
+    businessName: cardData?.businessName || business?.name || '',
     reward: cardData?.reward || '',
     stampGoal: typeof cardData?.stampGoal === 'number' && !isNaN(cardData.stampGoal) ? cardData.stampGoal : 10,
     pointsGoal: typeof cardData?.pointsGoal === 'number' && !isNaN(cardData.pointsGoal) ? cardData.pointsGoal : 1000,
     logo: cardData?.logo || '',
+    backgroundImage: cardData?.backgroundImage || '',
     customColors: cardData?.customColors || { primary: '#3B82F6', secondary: '#2563EB', text: '#ffffff' },
+    colorTheme: cardData?.colorTheme || 'blue',
+    selectedTemplate: cardData?.selectedTemplate || '',
+    tiers: cardData?.tiers || [],
+    expiryDays: cardData?.expiryDays || undefined,
+    customRewardType: cardData?.customRewardType || 'free_item',
+    termsAndConditions: cardData?.termsAndConditions || '',
     businessAddress: cardData?.businessAddress || '',
     businessWebsite: cardData?.businessWebsite || '',
     socialLinks: cardData?.socialLinks || { instagram: '', facebook: '', twitter: '' },
     ...cardData,
   };
-
 
   if (businessLoading || loading) {
     return (
@@ -111,22 +124,24 @@ const EditCardPage: React.FC = () => {
     setCardData((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  // Handles uploading a logo to Supabase and updates cardData with local and public URLs
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    
     // Local preview URL
     const localUrl = URL.createObjectURL(file);
     setCardData((prev: any) => ({ ...prev, logo: localUrl }));
+    
     // Upload to Supabase Storage
     try {
       setLoading(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `logo_${cardId}_${Date.now()}.${fileExt}`;
-      const { data, error } = await import('../../integrations/supabase/client').then(m => m.supabase.storage.from('logos').upload(fileName, file, { upsert: true }));
+      const { error } = await supabase.storage.from('business-logos').upload(fileName, file, { upsert: true });
       if (error) throw error;
+      
       // Get public URL
-      const { data: publicUrlData } = await import('../../integrations/supabase/client').then(m => m.supabase.storage.from('logos').getPublicUrl(fileName));
+      const { data: publicUrlData } = await supabase.storage.from('business-logos').getPublicUrl(fileName);
       const publicUrl = publicUrlData?.publicUrl;
       if (publicUrl) {
         setCardData((prev: any) => ({ ...prev, logo: publicUrl }));
@@ -138,6 +153,34 @@ const EditCardPage: React.FC = () => {
     }
   };
 
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Local preview URL
+    const localUrl = URL.createObjectURL(file);
+    setCardData((prev: any) => ({ ...prev, backgroundImage: localUrl }));
+    
+    // Upload to Supabase Storage
+    try {
+      setLoading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `background_${cardId}_${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('business-logos').upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      
+      // Get public URL
+      const { data: publicUrlData } = await supabase.storage.from('business-logos').getPublicUrl(fileName);
+      const publicUrl = publicUrlData?.publicUrl;
+      if (publicUrl) {
+        setCardData((prev: any) => ({ ...prev, backgroundImage: publicUrl, backgroundImageUrl: publicUrl }));
+      }
+    } catch (err) {
+      setError('Failed to upload background image.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStepChange = (step: number) => setCurrentStep(step);
 
@@ -154,7 +197,28 @@ const EditCardPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await updateCard(cardId, cardData);
+      // Prepare update data with enhanced features
+      const updateData = {
+        ...cardData,
+        design: {
+          ...cardData.design,
+          customColors: cardData.customColors,
+          logoUrl: cardData.logo,
+          backgroundImageUrl: cardData.backgroundImage,
+          selectedTemplate: cardData.selectedTemplate,
+        },
+        rules: {
+          ...cardData.rules,
+          rewardTitle: cardData.reward,
+          totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
+          tiers: cardData.tiers,
+          expiryDays: cardData.expiryDays,
+          customRewardType: cardData.customRewardType,
+          termsAndConditions: cardData.termsAndConditions,
+        },
+      };
+      
+      await updateCard(cardId, updateData);
       navigate('/cards');
     } catch (err) {
       setError('Failed to update card.');
@@ -162,7 +226,6 @@ const EditCardPage: React.FC = () => {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="max-w-4xl mx-auto py-10">
@@ -173,7 +236,15 @@ const EditCardPage: React.FC = () => {
             <CardBasicInfoStep cardData={cardData} handleChange={handleChange} business={business} />
           )}
           {currentStep === 2 && (
-            <CardDesignStep cardData={cardData} handleChange={handleChange} handleLogoUpload={handleLogoUpload} loading={loading} fileInputRef={fileInputRef} />
+            <CardDesignStep 
+              cardData={cardData} 
+              handleChange={handleChange} 
+              handleLogoUpload={handleLogoUpload}
+              handleBackgroundUpload={handleBackgroundUpload}
+              loading={loading} 
+              fileInputRef={fileInputRef}
+              backgroundInputRef={backgroundInputRef}
+            />
           )}
           {currentStep === 3 && (
             <CardRulesStep cardData={safeCardData} handleChange={handleChange} />
