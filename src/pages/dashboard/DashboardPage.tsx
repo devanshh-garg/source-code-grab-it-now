@@ -8,11 +8,13 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useBusinessData } from '../../hooks/useBusinessData';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
+import { useOnboarding } from '../../contexts/OnboardingContext';
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { business } = useBusinessData();
   const { cards } = useLoyaltyCards();
+  const { startOnboarding } = useOnboarding();
 
   const stats = [
     { 
@@ -81,18 +83,31 @@ const DashboardPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {currentUser?.user_metadata?.full_name || currentUser?.email}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {business ? `Managing ${business.name}` : "Here's what's happening with your loyalty program today."}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome back, {currentUser?.user_metadata?.full_name || currentUser?.email}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {business ? `Managing ${business.name}` : "Here's what's happening with your loyalty program today."}
+            </p>
+          </div>
+          {cards.length === 0 && (
+            <button
+              onClick={startOnboarding}
+              className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+            >
+              Start Tour
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <Link 
           to="/cards/create"
+          data-onboarding="create-card"
           className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-5 text-white hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
         >
           <div className="flex items-center justify-between">
