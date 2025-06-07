@@ -13,6 +13,12 @@ import CardRulesStep from '../../components/cards/create-card/CardRulesStep';
 import CardBusinessInfoStep from '../../components/cards/create-card/CardBusinessInfoStep';
 import { Toast } from '../../components/ui/toast';
 
+interface Tier {
+  name: string;
+  goal: number;
+  reward: string;
+}
+
 interface CardData {
   name: string;
   businessName: string;
@@ -37,19 +43,14 @@ interface CardData {
     facebook: string;
     twitter: string;
   };
-  rules: {
-    rewardTitle: string;
-    totalNeeded: number;
-    expiryEnabled: boolean;
-    expiryDays: number;
-    tiers: Array<{
-      name: string;
-      goal: number;
-      reward: string;
-    }>;
-    customRewardType: string;
-    customRewardDescription: string;
-  };
+  // Rules-related properties
+  stampGoal: number;
+  pointsGoal: number;
+  reward: string;
+  termsAndConditions: string;
+  tiers?: Tier[];
+  expiryDays?: number;
+  customRewardType?: string;
 }
 
 const CreateCardPage: React.FC = () => {
@@ -87,15 +88,14 @@ const CreateCardPage: React.FC = () => {
       facebook: '',
       twitter: '',
     },
-    rules: {
-      rewardTitle: '',
-      totalNeeded: 10,
-      expiryEnabled: false,
-      expiryDays: 30,
-      tiers: [],
-      customRewardType: '',
-      customRewardDescription: '',
-    },
+    // Rules-related properties
+    stampGoal: 10,
+    pointsGoal: 1000,
+    reward: '',
+    termsAndConditions: '',
+    tiers: [],
+    expiryDays: undefined,
+    customRewardType: 'free_item',
   });
 
   const steps = [
@@ -212,7 +212,7 @@ const CreateCardPage: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!cardData.name.trim() || !cardData.rules.rewardTitle.trim()) {
+    if (!cardData.name.trim() || !cardData.reward.trim()) {
       setToast({
         title: 'Validation Error',
         description: 'Please fill in all required fields.',
@@ -232,8 +232,8 @@ const CreateCardPage: React.FC = () => {
           textColor: cardData.textColor,
         } as any,
         rules: {
-          rewardTitle: cardData.rules.rewardTitle.trim(),
-          totalNeeded: cardData.rules.totalNeeded,
+          rewardTitle: cardData.reward.trim(),
+          totalNeeded: cardData.type === 'stamp' ? cardData.stampGoal : cardData.pointsGoal,
         } as any,
         active: true,
       });
@@ -262,23 +262,6 @@ const CreateCardPage: React.FC = () => {
 
   const CurrentStepComponent = steps[currentStep].component;
   const isLastStep = currentStep === steps.length - 1;
-
-  // Transform cardData for CardPreview component
-  const previewData = {
-    cardData: {
-      name: cardData.name,
-      type: cardData.type,
-      businessName: cardData.businessName,
-      reward: cardData.rules.rewardTitle,
-      stampGoal: cardData.rules.totalNeeded,
-      pointsGoal: cardData.rules.totalNeeded,
-      logo: cardData.logo,
-      backgroundImage: cardData.backgroundImage,
-      customColors: cardData.customColors,
-      tiers: cardData.rules.tiers,
-      expiryDays: cardData.rules.expiryDays,
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -384,7 +367,7 @@ const CreateCardPage: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Preview</h2>
-              <CardPreview {...previewData} />
+              <CardPreview cardData={cardData} />
             </div>
           </div>
         </div>
