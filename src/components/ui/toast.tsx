@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { X } from "lucide-react"
 
@@ -17,18 +18,21 @@ export function Toast({
 }: ToastProps) {
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 flex w-full max-w-sm items-center space-x-4 rounded-lg bg-white p-6 shadow-lg"
+      className="fixed bottom-4 right-4 z-50 flex w-full max-w-sm items-center space-x-4 rounded-lg bg-white p-6 shadow-lg border border-gray-200"
+      role="alert"
+      aria-live="polite"
       {...props}
     >
       <div className="flex-1 space-y-1">
-        {title && <div className="font-medium">{title}</div>}
-        {description && <div className="text-sm text-gray-500">{description}</div>}
+        {title && <div className="font-medium text-gray-900">{title}</div>}
+        {description && <div className="text-sm text-gray-600">{description}</div>}
       </div>
       {action}
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="inline-flex shrink-0 items-center justify-center rounded-md p-2 text-gray-400 hover:text-gray-500"
+          className="inline-flex shrink-0 items-center justify-center rounded-md p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label="Dismiss notification"
         >
           <X className="h-4 w-4" />
         </button>
