@@ -84,11 +84,16 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       try {
         // Check if user has completed onboarding
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('businesses')
-          .select('onboarding_completed')
+          .select('id, onboarding_completed')
           .eq('user_id', currentUser.id)
           .single();
+
+        if (error) {
+          console.error('Error fetching business profile:', error);
+          return;
+        }
 
         // Check if user has any loyalty cards
         const { data: cards } = await supabase
@@ -128,7 +133,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (currentUser) {
           await supabase
             .from('businesses')
-            .update({ onboarding_completed: true })
+            .update({ onboarding_completed: true } as any)
             .eq('user_id', currentUser.id);
         }
         setIsOnboardingActive(false);
@@ -143,7 +148,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (currentUser) {
         await supabase
           .from('businesses')
-          .update({ onboarding_completed: true })
+          .update({ onboarding_completed: true } as any)
           .eq('user_id', currentUser.id);
       }
       setIsOnboardingActive(false);

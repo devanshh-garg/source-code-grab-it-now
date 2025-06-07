@@ -150,15 +150,17 @@ const OnboardingWalkthrough: React.FC = () => {
       </div>
 
       {/* Custom Styles for Highlighting */}
-      <style jsx global>{`
-        .onboarding-highlight {
-          position: relative;
-          z-index: 51;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
-          border-radius: 8px;
-          transition: all 0.3s ease;
-        }
-      `}</style>
+      <style>
+        {`
+          .onboarding-highlight {
+            position: relative;
+            z-index: 51;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+          }
+        `}
+      </style>
     </>
   );
 };

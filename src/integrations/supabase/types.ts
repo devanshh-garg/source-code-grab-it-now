@@ -221,6 +221,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          onboarding_completed: boolean | null
           phone: string | null
           settings: Json | null
           social_links: Json | null
@@ -242,6 +243,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           settings?: Json | null
           social_links?: Json | null
@@ -263,6 +265,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           settings?: Json | null
           social_links?: Json | null

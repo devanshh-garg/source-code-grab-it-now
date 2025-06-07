@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { useLoyaltyCards } from '../../hooks/useLoyaltyCards';
 import { useBusinessData } from '../../hooks/useBusinessData';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { supabase } from '../../integrations/supabase/client';
 import CardPreview from '../../components/cards/CardPreview';
 import CardBasicInfoStep from '../../components/cards/create-card/CardBasicInfoStep';
 import CardDesignStep from '../../components/cards/create-card/CardDesignStep';
@@ -23,6 +24,14 @@ interface CardData {
   textColor: string;
   businessAddress: string;
   businessWebsite: string;
+  colorTheme: string;
+  logo: string;
+  selectedTemplate?: string;
+  customColors: {
+    primary: string;
+    secondary: string;
+    text: string;
+  };
   socialLinks: {
     instagram: string;
     facebook: string;
@@ -51,6 +60,8 @@ const CreateCardPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ title: string; description: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
 
   const [cardData, setCardData] = useState<CardData>({
     name: '',
@@ -60,7 +71,15 @@ const CreateCardPage: React.FC = () => {
     backgroundColor: '#3B82F6',
     backgroundImage: '',
     logoUrl: '',
+    logo: '',
     textColor: '#FFFFFF',
+    colorTheme: 'blue',
+    selectedTemplate: '',
+    customColors: {
+      primary: '#3B82F6',
+      secondary: '#2563EB',
+      text: '#FFFFFF',
+    },
     businessAddress: '',
     businessWebsite: '',
     socialLinks: {
@@ -103,7 +122,7 @@ const CreateCardPage: React.FC = () => {
       setCardData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof CardData],
+          ...(prev[parent as keyof CardData] as any),
           [child]: value,
         },
       }));
@@ -112,6 +131,71 @@ const CreateCardPage: React.FC = () => {
         ...prev,
         [field]: value,
       }));
+    }
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('business-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(filePath);
+
+      handleChange('logo', data.publicUrl);
+      handleChange('logoUrl', data.publicUrl);
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      setToast({
+        title: 'Upload Error',
+        description: 'Failed to upload logo. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `backgrounds/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('business-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(filePath);
+
+      handleChange('backgroundImage', data.publicUrl);
+    } catch (error) {
+      console.error('Error uploading background:', error);
+      setToast({
+        title: 'Upload Error',
+        description: 'Failed to upload background image. Please try again.',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -145,18 +229,12 @@ const CreateCardPage: React.FC = () => {
         design: {
           backgroundColor: cardData.backgroundColor,
           logoUrl: cardData.logoUrl || undefined,
-          backgroundImage: cardData.backgroundImage || undefined,
           textColor: cardData.textColor,
-        },
+        } as any,
         rules: {
           rewardTitle: cardData.rules.rewardTitle.trim(),
           totalNeeded: cardData.rules.totalNeeded,
-          expiryEnabled: cardData.rules.expiryEnabled,
-          expiryDays: cardData.rules.expiryDays,
-          tiers: cardData.rules.tiers,
-          customRewardType: cardData.rules.customRewardType,
-          customRewardDescription: cardData.rules.customRewardDescription,
-        },
+        } as any,
         active: true,
       });
 
@@ -184,6 +262,23 @@ const CreateCardPage: React.FC = () => {
 
   const CurrentStepComponent = steps[currentStep].component;
   const isLastStep = currentStep === steps.length - 1;
+
+  // Transform cardData for CardPreview component
+  const previewData = {
+    cardData: {
+      name: cardData.name,
+      type: cardData.type,
+      businessName: cardData.businessName,
+      reward: cardData.rules.rewardTitle,
+      stampGoal: cardData.rules.totalNeeded,
+      pointsGoal: cardData.rules.totalNeeded,
+      logo: cardData.logo,
+      backgroundImage: cardData.backgroundImage,
+      customColors: cardData.customColors,
+      tiers: cardData.rules.tiers,
+      expiryDays: cardData.rules.expiryDays,
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -244,6 +339,11 @@ const CreateCardPage: React.FC = () => {
                   cardData={cardData}
                   handleChange={handleChange}
                   business={business}
+                  handleLogoUpload={handleLogoUpload}
+                  handleBackgroundUpload={handleBackgroundUpload}
+                  loading={loading}
+                  fileInputRef={fileInputRef}
+                  backgroundInputRef={backgroundInputRef}
                 />
               </div>
 
@@ -284,7 +384,7 @@ const CreateCardPage: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Preview</h2>
-              <CardPreview {...cardData} />
+              <CardPreview {...previewData} />
             </div>
           </div>
         </div>
