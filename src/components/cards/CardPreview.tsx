@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { CreditCard, Check, Smartphone, Star } from 'lucide-react';
+import { CreditCard, Smartphone, Star } from 'lucide-react';
 
 interface Tier {
   name: string;

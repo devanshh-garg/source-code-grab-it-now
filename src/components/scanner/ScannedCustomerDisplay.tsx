@@ -1,5 +1,5 @@
 import React from 'react';
-import { Minus, Plus, Check, Stamp, CreditCard, Clock } from 'lucide-react';
+import { Minus, Plus, Stamp, CreditCard, Clock } from 'lucide-react';
 
 interface ScannedCustomer {
   id: string;

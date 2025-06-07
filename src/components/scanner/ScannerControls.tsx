@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 interface ScannerControlsProps {
